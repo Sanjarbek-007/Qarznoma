@@ -15,6 +15,17 @@ curl -k https://localhost/healthz
 
 Without Docker: `DATABASE_URL=postgres://... JWT_SECRET=<32+ bytes> go run ./cmd/server`.
 
+## API docs (Swagger)
+
+Swagger UI is at **`/docs`** (e.g. `https://api.example.uz/docs`, or `http://localhost:8080/docs`
+locally). Click **Authorize**, paste an `access_token` from `/v1/auth/login`, and every endpoint can
+be tried from the browser. The raw spec is at `/docs/openapi.yaml` (source: [docs/openapi.yaml](docs/openapi.yaml)):
+import it into Postman, or generate a client from it (e.g. `openapi-generator` for Kotlin/TypeScript).
+
+`docs_test.go` fails if a route is added without documenting it, if a documented route no longer
+exists, or if a sync row schema drifts from the server's column list, so update the YAML together
+with the handlers. Set `DISABLE_DOCS=1` to turn `/docs` off.
+
 ## Deploy to a server
 
 The stack is `db` (Postgres) + `api` + `caddy`. Caddy is the only public part: it listens on
@@ -52,6 +63,7 @@ re-issuing certificates too often hits Let's Encrypt rate limits.
 | `WEB_DIR` | serves `web/` at `/privacy` and `/delete-account` (set in the Docker image) |
 | `WEB_ORIGIN` | CORS origin if the delete-account page lives on another domain |
 | `ACCESS_TTL` / `REFRESH_TTL` | default 15m / 60 days |
+| `DISABLE_DOCS=1` | turn off Swagger UI at `/docs` |
 
 ## Tests
 
@@ -78,6 +90,7 @@ cmd/server         main: config, migrate, bootstrap admin, HTTP server
 migrations/        goose SQL (final schema = HANDOFF §4 + sync_clock + purchases)
 internal/api       handlers: auth, profile/devices/announcements, sync, admin, deletion, billing
 internal/auth      bcrypt, JWT, refresh tokens
+docs/              openapi.yaml (embedded, served at /docs)
 web/               privacy-policy.html, delete-account.html (from docs/web)
 ```
 

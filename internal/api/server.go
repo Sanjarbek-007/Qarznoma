@@ -61,6 +61,10 @@ func (s *Server) Handler() http.Handler {
 		r.StaticFile("/delete-account.html", filepath.Join(s.cfg.WebDir, "delete-account.html"))
 	}
 
+	if !s.cfg.DisableDocs {
+		registerDocs(r)
+	}
+
 	v1 := r.Group("/v1")
 	v1.Use(s.cors())
 

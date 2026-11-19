@@ -30,6 +30,9 @@ type Config struct {
 	WebDir string // WEB_DIR
 
 	TrustProxy bool // TRUST_PROXY=1: use X-Forwarded-For for client IP (behind Caddy/Nginx)
+
+	// Swagger UI at /docs and the spec at /docs/openapi.yaml are served unless DISABLE_DOCS=1.
+	DisableDocs bool
 }
 
 func Load() (*Config, error) {
@@ -43,6 +46,7 @@ func Load() (*Config, error) {
 		WebOrigin:         os.Getenv("WEB_ORIGIN"),
 		WebDir:            os.Getenv("WEB_DIR"),
 		TrustProxy:        os.Getenv("TRUST_PROXY") == "1",
+		DisableDocs:       os.Getenv("DISABLE_DOCS") == "1",
 	}
 	var err error
 	if c.AccessTTL, err = duration("ACCESS_TTL", 15*time.Minute); err != nil {
