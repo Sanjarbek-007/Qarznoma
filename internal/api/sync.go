@@ -49,27 +49,36 @@ func decodePushBody(c *gin.Context, t *syncTable, uid uuid.UUID) ([]decodedRow, 
 		if m == nil {
 			return nil, validation(fmt.Sprintf("qator %d: obyekt kutilgan", i))
 		}
-		// premium_user_id in the body is never trusted; a mismatch rejects the chunk (3.1).
-		if t.owned {
-			if v, ok := m["premium_user_id"]; ok && string(v) != "null" {
-				var s string
-				if json.Unmarshal(v, &s) != nil || !strings.EqualFold(s, uid.String()) {
-					return nil, validation(fmt.Sprintf("qator %d: premium_user_id boshqa foydalanuvchiga tegishli", i))
-				}
-			}
-		}
-		r := make(decodedRow, len(t.cols))
-		for j, cs := range t.cols {
-			v, present := m[cs.name]
-			val, err := cs.decodeValue(v, present)
-			if err != nil {
-				return nil, validation(fmt.Sprintf("qator %d: %v", i, err))
-			}
-			r[j] = val
+		r, err := t.decodeRow(m, uid)
+		if err != nil {
+			return nil, validation(fmt.Sprintf("qator %d: %s", i, err.Error()))
 		}
 		rows = append(rows, r)
 	}
 	return rows, nil
+}
+
+// decodeRow validates one row and converts it to t.cols order.
+// premium_user_id in the body is never trusted; a mismatch rejects the row (3.1).
+func (t *syncTable) decodeRow(m map[string]json.RawMessage, uid uuid.UUID) (decodedRow, error) {
+	if t.owned {
+		if v, ok := m["premium_user_id"]; ok && string(v) != "null" {
+			var s string
+			if json.Unmarshal(v, &s) != nil || !strings.EqualFold(s, uid.String()) {
+				return nil, errors.New("premium_user_id boshqa foydalanuvchiga tegishli")
+			}
+		}
+	}
+	r := make(decodedRow, len(t.cols))
+	for j, cs := range t.cols {
+		v, present := m[cs.name]
+		val, err := cs.decodeValue(v, present)
+		if err != nil {
+			return nil, err
+		}
+		r[j] = val
+	}
+	return r, nil
 }
 
 func (t *syncTable) colIndex(name string) int {
@@ -150,16 +159,22 @@ func (s *Server) syncPush(c *gin.Context) {
 		c.Status(http.StatusNoContent)
 		return
 	}
-	err = s.inTx(ctx, func(tx pgx.Tx) error { return s.pushRows(ctx, tx, t, u, rows) })
-	if err != nil {
-		var pe *pgconn.PgError
-		if errors.As(err, &pe) && (strings.HasPrefix(pe.Code, "22") || strings.HasPrefix(pe.Code, "23")) {
-			err = validation("ma'lumot cheklovi buzildi: " + pe.Message)
-		}
+	if err := s.applyPush(ctx, func(tx pgx.Tx) error { return s.pushRows(ctx, tx, t, u, rows) }); err != nil {
 		fail(c, err)
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+// applyPush runs a write in one transaction and turns data/constraint errors into 422.
+// Used by the sync push and by the web endpoints, so both behave the same.
+func (s *Server) applyPush(ctx context.Context, fn func(pgx.Tx) error) error {
+	err := s.inTx(ctx, fn)
+	var pe *pgconn.PgError
+	if errors.As(err, &pe) && (strings.HasPrefix(pe.Code, "22") || strings.HasPrefix(pe.Code, "23")) {
+		return validation("ma'lumot cheklovi buzildi: " + pe.Message)
+	}
+	return err
 }
 
 func (s *Server) pushRows(ctx context.Context, tx pgx.Tx, t *syncTable, u *PremiumUser, rows []decodedRow) error {

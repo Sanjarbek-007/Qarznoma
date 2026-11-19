@@ -30,8 +30,13 @@ tags:
     description: Login, registration, tokens
   - name: profile
     description: Current user, devices, settings, announcements
+  - name: debts
+    description: |
+      Debtors and debts as normal REST, for the browser. Uses the same rules and storage as sync, so
+      changes made here reach the phones on their next sync and vice versa. Reading works on any plan;
+      adding, editing and deleting need an active PRO plan.
   - name: sync
-    description: Offline-first cloud sync (PRO)
+    description: Offline-first cloud sync for the Android app (PRO)
   - name: account-deletion
     description: Public account deletion request (Google Play requirement)
   - name: billing
@@ -333,6 +338,218 @@ paths:
       responses:
         "204": { description: Removed }
         "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  # ───────────────────────────── debts (web) ─────────────────────────────
+  /v1/debtors:
+    get:
+      tags: [debts]
+      summary: List my debtors (search, filter, sort, pages)
+      description: |
+        Deleted debtors are not included. `total` is the number of matching debtors (for page numbers).
+      parameters:
+        - { name: q, in: query, schema: { type: string, maxLength: 100 }, description: "Search in name or phone. Digits also match ignoring spaces/+ (`90 123` finds `+998901234567`)." }
+        - { name: has_debt, in: query, schema: { type: boolean }, description: Only debtors whose total is not 0 }
+        - { name: overdue, in: query, schema: { type: boolean }, description: Only debtors with a non-zero total whose repayment date has passed }
+        - { name: sort, in: query, schema: { type: string, enum: [updated, name, total, repayment_date], default: updated } }
+        - { name: order, in: query, schema: { type: string, enum: [asc, desc] }, description: "Default: asc for name and repayment_date, desc otherwise" }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageMeta"
+                  - type: object
+                    properties:
+                      items: { type: array, items: { $ref: "#/components/schemas/DebtorRow" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      tags: [debts]
+      summary: Add a debtor (customer)
+      description: Needs an active PRO plan. `id` is optional; the server generates one if missing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [full_name, repayment_date]
+              properties:
+                id: { type: string, format: uuid }
+                full_name: { type: string, maxLength: 200, example: Ali aka }
+                description: { type: string, maxLength: 5000 }
+                phone_number: { type: string, maxLength: 64, example: "+998901234567" }
+                currency_type: { type: integer, minimum: 0, maximum: 4, default: 0 }
+                repayment_date: { type: string, format: date-time, example: "2026-12-31T12:00:00Z" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DebtorRow" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error", description: "`FORBIDDEN_NOT_PRO` or `ACCOUNT_BLOCKED`" }
+        "409": { $ref: "#/components/responses/Error", description: "`PLAN_LIMIT` or `ID_EXISTS`" }
+        "422": { $ref: "#/components/responses/Error", description: "`VALIDATION` (also for unknown fields)" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/debtors/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags: [debts]
+      summary: One debtor
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DebtorRow" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/Error", description: Not found, deleted, or not yours }
+    patch:
+      tags: [debts]
+      summary: Edit a debtor (only the fields you send change)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                full_name: { type: string, maxLength: 200 }
+                description: { type: string, maxLength: 5000 }
+                phone_number: { type: string, maxLength: 64 }
+                currency_type: { type: integer, minimum: 0, maximum: 4 }
+                repayment_date: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Updated debtor
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DebtorRow" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error", description: "`FORBIDDEN_NOT_PRO` or `ACCOUNT_BLOCKED`" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [debts]
+      summary: Delete a debtor and all their debts (cannot be undone)
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error", description: "`FORBIDDEN_NOT_PRO` or `ACCOUNT_BLOCKED`" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/debtors/{id}/debts:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags: [debts]
+      summary: A debtor's debts, newest first
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PerPage"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/PageMeta"
+                  - type: object
+                    properties:
+                      items: { type: array, items: { $ref: "#/components/schemas/DebtRow" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/Error", description: Debtor not found }
+        "422": { $ref: "#/components/responses/Error" }
+    post:
+      tags: [debts]
+      summary: Add a debt (or a repayment) to a debtor
+      description: |
+        `debt_amount` is in minor units: **negative = money given on credit**, positive = paid back.
+        The debtor's `total_debts_amount` is recalculated. Needs an active PRO plan.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [debt_amount]
+              properties:
+                id: { type: string, format: uuid }
+                debt_amount: { type: integer, format: int64, example: -5000000 }
+                debt_description: { type: string, maxLength: 5000, example: Un 2 qop }
+                debt_date: { type: string, format: date-time, description: Defaults to now }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DebtRow" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error", description: "`FORBIDDEN_NOT_PRO` or `ACCOUNT_BLOCKED`" }
+        "404": { $ref: "#/components/responses/Error", description: Debtor not found }
+        "409": { $ref: "#/components/responses/Error", description: "`PLAN_LIMIT` or `ID_EXISTS`" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /v1/debts/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags: [debts]
+      summary: One debt
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DebtRow" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/Error" }
+    patch:
+      tags: [debts]
+      summary: Edit a debt (only the fields you send change)
+      description: Sending `debtor_id` moves the debt to another of your debtors; both totals are recalculated.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                debtor_id: { type: string, format: uuid }
+                debt_amount: { type: integer, format: int64 }
+                debt_description: { type: string, maxLength: 5000 }
+                debt_date: { type: string, format: date-time }
+      responses:
+        "200":
+          description: Updated debt
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DebtRow" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error", description: "`FORBIDDEN_NOT_PRO` or `ACCOUNT_BLOCKED`" }
+        "404": { $ref: "#/components/responses/Error" }
+        "422": { $ref: "#/components/responses/Error" }
+    delete:
+      tags: [debts]
+      summary: Delete a debt (cannot be undone)
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error", description: "`FORBIDDEN_NOT_PRO` or `ACCOUNT_BLOCKED`" }
         "404": { $ref: "#/components/responses/Error" }
 
   # ───────────────────────────── sync ─────────────────────────────
@@ -863,6 +1080,15 @@ components:
         type: string
         enum: [debtors, debts, finance_categories, finance_tags, finance_goals, finance_transactions, notes]
 
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PerPage:
+      name: per_page
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 200, default: 50 }
+
   requestBodies:
     AdminNote:
       required: false
@@ -912,9 +1138,16 @@ components:
               example: INVALID_CREDENTIALS
               description: |
                 UNAUTHORIZED, INVALID_CREDENTIALS, ACCOUNT_BLOCKED, FORBIDDEN, FORBIDDEN_NOT_PRO,
-                NOT_FOUND, VALIDATION, INVALID_LOGIN, WEAK_PASSWORD, LOGIN_TAKEN, DEVICE_LIMIT_REACHED,
+                NOT_FOUND, VALIDATION, ID_EXISTS, INVALID_LOGIN, WEAK_PASSWORD, LOGIN_TAKEN, DEVICE_LIMIT_REACHED,
                 PLAN_LIMIT, REQUEST_EXISTS, NOT_PENDING, RATE_LIMITED, NOT_CONFIGURED, INTERNAL
             message: { type: string, example: "login yoki parol noto'g'ri" }
+
+    PageMeta:
+      type: object
+      properties:
+        total: { type: integer, description: Number of matching items across all pages }
+        page: { type: integer }
+        per_page: { type: integer }
 
     RefreshBody:
       type: object

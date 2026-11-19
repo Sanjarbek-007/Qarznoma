@@ -49,7 +49,7 @@ func (s *Server) Handler() http.Handler {
 	} else {
 		_ = r.SetTrustedProxies(nil)
 	}
-	r.Use(requestID(), accessLog(), recovery())
+	r.Use(requestID(), accessLog(), recovery(), s.cors())
 	r.NoRoute(func(c *gin.Context) { fail(c, errNotFound) })
 	r.NoMethod(func(c *gin.Context) { fail(c, errNotFound) })
 
@@ -66,7 +66,6 @@ func (s *Server) Handler() http.Handler {
 	}
 
 	v1 := r.Group("/v1")
-	v1.Use(s.cors())
 
 	// ── public ──
 	v1.POST("/auth/login", s.login)
@@ -96,6 +95,19 @@ func (s *Server) Handler() http.Handler {
 	sync.POST("/debtors/by-ids", s.debtorsByIDs)
 	sync.POST("/:table", s.syncPush)
 	sync.GET("/:table", s.syncPull)
+
+	// Browser-friendly REST for debtors/debts; writes go through the same code as sync.
+	web := u.Group("", s.syncRateLimit())
+	web.GET("/debtors", s.webListDebtors)
+	web.POST("/debtors", s.webCreateDebtor)
+	web.GET("/debtors/:id", s.webGetDebtor)
+	web.PATCH("/debtors/:id", s.webUpdateDebtor)
+	web.DELETE("/debtors/:id", s.webDeleteDebtor)
+	web.GET("/debtors/:id/debts", s.webListDebts)
+	web.POST("/debtors/:id/debts", s.webCreateDebt)
+	web.GET("/debts/:id", s.webGetDebt)
+	web.PATCH("/debts/:id", s.webUpdateDebt)
+	web.DELETE("/debts/:id", s.webDeleteDebt)
 
 	u.POST("/billing/google/verify", s.billingVerify)
 	v1.POST("/billing/google/rtdn", s.billingRTDN)
