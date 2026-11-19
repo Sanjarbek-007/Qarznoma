@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Qarznoma — Privacy policy</title>
+<style>
+:root{--bg:#eef2f8;--bg2:#e4ebf6;--card:#ffffff;--text:#172033;--muted:#5d687c;--border:#dde3ee;
+--accent:#2563eb;--accent-soft:#e3ecff;--accent-text:#ffffff;--danger:#dc2626;--danger-soft:#fdecec;
+--ok:#15803d;--ok-soft:#e5f6ea;--field:#f7f9fd;--shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px rgba(16,24,40,.06)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0f17;--bg2:#101828;--card:#151b27;
+--text:#e8ecf3;--muted:#98a2b5;--border:#263042;--accent:#6ea0ff;--accent-soft:#1b2a47;--accent-text:#0b0f17;
+--danger:#ff6b6b;--danger-soft:#3a1c20;--ok:#4ade80;--ok-soft:#14301f;--field:#0f141e;--shadow:0 1px 2px rgba(0,0,0,.3)}}
+:root[data-theme="dark"]{--bg:#0b0f17;--bg2:#101828;--card:#151b27;--text:#e8ecf3;--muted:#98a2b5;--border:#263042;
+--accent:#6ea0ff;--accent-soft:#1b2a47;--accent-text:#0b0f17;--danger:#ff6b6b;--danger-soft:#3a1c20;--ok:#4ade80;
+--ok-soft:#14301f;--field:#0f141e;--shadow:0 1px 2px rgba(0,0,0,.3)}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;min-height:100vh;color:var(--text);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+background:radial-gradient(1200px 500px at 50% -200px,var(--bg2),var(--bg));background-color:var(--bg);
+transition:background-color .2s,color .2s}
+.wrap{max-width:780px;margin:0 auto;padding:16px}
+header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:nowrap;gap:10px;align-items:center;justify-content:space-between;
+margin:0 -16px 18px;padding:12px 16px;background:color-mix(in srgb,var(--bg) 82%,transparent);
+backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--text);text-decoration:none}
+.logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;
+background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+.tools{display:flex;gap:8px;align-items:center}
+.ctl{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid var(--border);
+background:var(--card);color:var(--text);border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+box-shadow:var(--shadow)}
+.ctl:hover{border-color:var(--accent)}.ctl:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctl svg{width:18px;height:18px;flex:none}
+.lang-wrap{position:relative}
+.ctl .chev{width:14px;height:14px;opacity:.7;transition:transform .18s}
+.ctl[aria-expanded="true"]{border-color:var(--accent)}.ctl[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.menu{position:absolute;right:0;top:calc(100% + 8px);min-width:210px;margin:0;padding:6px;list-style:none;
+background:var(--card);border:1px solid var(--border);border-radius:16px;
+box-shadow:0 12px 32px rgba(16,24,40,.18),0 2px 6px rgba(16,24,40,.08);
+transform-origin:top right;animation:pop .14s ease-out;z-index:20}
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(-4px)}to{opacity:1;transform:none}}
+.menu li{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;cursor:pointer;
+font-size:15px;font-weight:500;color:var(--text);outline:none}
+.menu li:hover,.menu li:focus{background:var(--field)}
+.menu .code{width:34px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:11px;font-weight:700;
+letter-spacing:.3px;background:var(--field);border:1px solid var(--border);color:var(--muted)}
+.menu .nm{flex:1}
+.menu .ok{width:18px;height:18px;color:var(--accent);visibility:hidden}
+.menu li[aria-selected="true"]{color:var(--accent);font-weight:700}
+.menu li[aria-selected="true"] .code{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.menu li[aria-selected="true"] .ok{visibility:visible}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:14px;
+box-shadow:var(--shadow)}
+.hero{display:flex;gap:16px;align-items:flex-start;padding:26px 22px}
+.hero .ico{width:52px;height:52px;border-radius:16px;flex:none;display:grid;place-items:center;
+background:var(--accent-soft);color:var(--accent)}
+.hero.danger .ico{background:var(--danger-soft);color:var(--danger)}
+.ico svg{width:26px;height:26px}
+h1{font-size:28px;line-height:1.2;margin:0 0 8px;letter-spacing:-.3px}
+h2{font-size:18px;line-height:1.35;margin:0 0 10px}
+p{margin:0 0 10px}p:last-child{margin-bottom:0}.muted{color:var(--muted)}
+ul{margin:0 0 12px;padding-left:22px}li{margin:4px 0}li::marker{color:var(--accent)}
+a{color:var(--accent);text-underline-offset:3px}
+.updated{display:inline-block;font-size:13px;color:var(--muted);background:var(--field);border:1px solid var(--border);
+border-radius:999px;padding:2px 10px;margin-bottom:12px}
+.toc ol{margin:0;padding-left:22px;columns:2;column-gap:28px}.toc li{break-inside:avoid}
+.toc a{text-decoration:none;color:var(--text)}.toc a:hover{color:var(--accent)}
+.sec{counter-increment:sec;scroll-margin-top:80px}
+.sec h2{display:flex;gap:12px;align-items:flex-start}
+.sec h2::before{content:counter(sec);flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+font-size:14px;background:var(--accent-soft);color:var(--accent);margin-top:-1px}
+main{counter-reset:sec}
+.method{display:flex;gap:14px;align-items:flex-start}
+.method .ico{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+background:var(--accent-soft);color:var(--accent)}.method .ico svg{width:20px;height:20px}
+.method>div{flex:1;min-width:0}
+.form-card{border-top:4px solid var(--danger)}
+label{display:block;font-size:14px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+input[type=text],input[type=password],input[type=tel]{width:100%;padding:13px 14px;border:1px solid var(--border);
+border-radius:12px;background:var(--field);color:var(--text);font:inherit;transition:border-color .15s,box-shadow .15s}
+input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.check{display:flex;gap:10px;align-items:flex-start;margin:16px 0;color:var(--text);font-size:15px;font-weight:400}
+.check input{margin-top:4px;width:18px;height:18px;flex:none;accent-color:var(--danger)}
+.btn{width:100%;padding:15px;border:0;border-radius:14px;background:var(--danger);color:#fff;font:inherit;
+font-weight:700;cursor:pointer;transition:filter .15s,transform .05s}.btn:hover{filter:brightness(1.07)}
+.btn:active{transform:translateY(1px)}.btn:disabled{opacity:.55;cursor:default}
+.msg:empty{display:none}.msg{margin-top:14px;font-weight:600;padding:12px 14px;border-radius:12px}
+.msg.err{color:var(--danger);background:var(--danger-soft)}.msg.ok{color:var(--ok);background:var(--ok-soft)}
+.note{background:var(--accent-soft);border-radius:12px;padding:12px 14px}
+.note.warn{background:var(--danger-soft)}
+.mail{max-width:100%;overflow-wrap:anywhere;display:inline-flex;align-items:center;gap:8px;font-weight:600;text-decoration:none;padding:10px 14px;
+border-radius:12px;background:var(--accent-soft)}.mail svg{width:18px;height:18px}
+footer{color:var(--muted);font-size:14px;text-align:center;margin:26px 0 10px}
+footer a{color:var(--muted)}
+[hidden]{display:none!important}
+@media (max-width:520px){h1{font-size:23px}.hero{flex-direction:column;gap:12px}.toc ol{columns:1}
+.brand .name{display:none}.lang-btn .globe{display:none}.method{flex-direction:column;gap:10px}.ctl{padding:0 11px;font-size:13px;gap:6px}.card{padding:18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><a class="brand" href="privacy-policy.html"><span class="logo">Q</span><span class="name">Qarznoma</span></a>
+<div class="tools"><div class="lang-wrap"><button type="button" class="ctl lang-btn" id="langBtn" aria-haspopup="listbox"
+aria-expanded="false" aria-label="Language"><svg class="globe" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg><span id="langCur"></span><svg class="chev" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+<ul class="menu" id="langMenu" role="listbox" hidden></ul></div>
+<button type="button" class="ctl" id="themeBtn" onclick="toggleTheme()"></button></div></header>
+<main id="app"></main>
+<footer>© Qarznoma · <a id="fp" href="privacy-policy.html"></a> · <a id="fd" href="delete-account.html"></a></footer>
+</div>
+<script>
+const LANGS=[["uz", "O'zbekcha"], ["uz-Cyrl", "Ўзбекча"], ["ru", "Русский"], ["en", "English"]];const T={"uz": {"title": "Maxfiylik siyosati", "updated": "Oxirgi yangilanish: 2026-yil 18-noyabr", "intro": "Ushbu siyosat Qarznoma ilovasi qanday ma'lumotlarni yig'ishi, ularni qayerda saqlashi, nima uchun ishlatishi va siz ularni qanday boshqarishingiz mumkinligini tushuntiradi.", "sections": [["Siz kiritadigan ma'lumotlar", "Qarzdorlar (ism, telefon raqami, izoh), qarz summalari, sanalar va izohlar; moliya yozuvlari (kirim, chiqim, konvertatsiya), kategoriyalar, teglar va jamg'arma maqsadlari; qaydlar (matni, teglari, rangi va eslatma vaqti). Bu ma'lumotlarni faqat siz kiritasiz va o'zgartirasiz."], ["Hisob va qurilma ma'lumotlari", "Hisobingiz: login, ism, tarif turi va uning amal qilish muddati, hisob qanday ochilgani (ilovada ro'yxatdan o'tish yoki administrator). Bulut sinxronizatsiyasi ishlatilsa: qurilma identifikatori (Android ID) va qurilma modeli — faqat bitta hisobga ulangan qurilmalar sonini nazorat qilish uchun. Shuningdek, ilovadan oxirgi foydalanilgan vaqt (faollik), administrator qayd etgan to'lovlar tarixi (summa, tarif, sana) va siz o'qigan yoki yashirgan xabarlar ro'yxati saqlanadi."], ["Ilova nimaga kirmaydi", "Ilova kontaktlaringiz, joylashuvingiz, kamera, mikrofon, galereya yoki boshqa fayllaringizga kirmaydi. \"Qo'ng'iroq\" va \"SMS\" tugmalari faqat siz bosganingizda telefoningizning o'z ilovasini ochadi — ilovaning o'zi qo'ng'iroq qilmaydi va SMS yubormaydi."], ["Ma'lumotlar qayerda saqlanadi", "Bepul rejimda — faqat shu qurilmada. Bulut sinxronizatsiyasi bor tarifda — qo'shimcha ravishda himoyalangan serverda; qurilma va server o'rtasidagi aloqa shifrlangan (HTTPS). Har bir foydalanuvchi faqat o'z ma'lumotlarini ko'ra oladi."], ["Ma'lumotlardan foydalanish", "Ma'lumotlaringiz faqat ilova vazifalarini bajarish uchun ishlatiladi: qarz va moliya hisobini yuritish, statistika, qaydlar, eslatmalar, qurilmalar o'rtasida sinxronlash. Ilovada reklama yo'q, ma'lumotlaringiz sotilmaydi va reklama maqsadida uchinchi shaxslarga berilmaydi."], ["Uchinchi tomon xizmatlari", "Valyuta kurslari O'zbekiston Markaziy bankining ochiq API'sidan (cbu.uz) olinadi — bu so'rovda shaxsiy ma'lumotingiz yuborilmaydi. Bulut ma'lumotlari hosting (server) xizmati provayderida faqat saqlash maqsadida joylashadi. Ilova barqarorligi uchun ilova ishdan chiqqanda Google Firebase Crashlytics xizmatiga texnik xatolar hisoboti yuboriladi: qurilma modeli, Android va ilova versiyasi, xatoning texnik tavsifi. Bu hisobotlarda siz kiritgan ma'lumotlar (ismlar, summalar, telefon raqamlari) va loginingiz bo'lmaydi."], ["Ruxsatlar", "Bildirishnomalar — qarz qaytarish muddati haqidagi eslatmalar (Sozlamalarda o'chirish mumkin) va qaydga o'zingiz qo'ygan vaqtdagi eslatma uchun. Uyg'otkichlar va eslatmalar — qayd eslatmasi aniq o'z vaqtida chiqishi uchun. Barmoq izi — ilovani qulflash uchun; tekshiruvni telefoningiz o'zi bajaradi, barmoq izi ma'lumoti ilovaga berilmaydi. Internet — sinxronlash va valyuta kurslari uchun."], ["Xavfsizlik", "PIN-kod qurilmada ochiq holda emas, xeshlangan ko'rinishda saqlanadi. Hisob paroli o'zgartirilsa, barcha qurilmalardagi sessiyalar bekor qilinadi. Shunga qaramay, internet orqali uzatishning hech bir usuli mutlaq xavfsiz emasligini yodda tuting."], ["Saqlash muddati va o'chirish", "Qurilmadagi ma'lumotlarni istalgan vaqtda Sozlamalar → \"Ma'lumotlarni o'chirish\" orqali o'chirishingiz mumkin. Hisobingiz va bulutdagi barcha ma'lumotlarni Sozlamalar → \"Akkauntni o'chirish\" orqali o'zingiz o'chirishingiz mumkin. Hisob o'chirilgach, serverdagi ma'lumotlar qayta tiklanmaydigan tarzda o'chiriladi."], ["Yosh chegarasi", "Ilova faqat 18 yosh va undan katta foydalanuvchilar uchun mo'ljallangan. 18 yoshga to'lmagan shaxslardan ataylab ma'lumot yig'ilmaydi; bunday hisob aniqlansa, u va unga tegishli ma'lumotlar o'chiriladi."], ["O'zgarishlar va aloqa", "Siyosat yangilanishi mumkin; muhim o'zgarishlar ilova orqali e'lon qilinadi. Savollar va ma'lumotlarga oid so'rovlar uchun: Sozlamalar → \"Dasturchi bilan aloqa\". Ilova ichidagi \"Xabarlar\" bo'limida administrator e'lonlari ko'rsatiladi; hisobga kirgan bo'lsangiz, xabarlarning o'qilganlik holati hisobingizga bog'lab serverda saqlanadi, aks holda faqat qurilmangizda."]], "delete_link": "Akkauntni o'chirish"}, "uz-Cyrl": {"title": "Махфийлик сиёсати", "updated": "Охирги янгиланиш: 2026-йил 18-ноябрь", "intro": "Ушбу сиёсат Qarznoma иловаси қандай маълумотларни йиғиши, уларни қаерда сақлаши, нима учун ишлатиши ва сиз уларни қандай бошқаришингиз мумкинлигини тушунтиради.", "sections": [["Сиз киритадиган маълумотлар", "Қарздорлар (исм, телефон рақами, изоҳ), қарз суммалари, саналар ва изоҳлар; молия ёзувлари (кирим, чиқим, конвертация), категориялар, теглар ва жамғарма мақсадлари; қайдлар (матни, теглари, ранги ва эслатма вақти). Бу маълумотларни фақат сиз киритасиз ва ўзгартирасиз."], ["Ҳисоб ва қурилма маълумотлари", "Ҳисобингиз: логин, исм, тариф тури ва унинг амал қилиш муддати, ҳисоб қандай очилгани (иловада рўйхатдан ўтиш ёки администратор). Булут синхронизацияси ишлатилса: қурилма идентификатори (Android ID) ва қурилма модели — фақат битта ҳисобга уланган қурилмалар сонини назорат қилиш учун. Шунингдек, иловадан охирги фойдаланилган вақт (фаоллик), администратор қайд этган тўловлар тарихи (сумма, тариф, сана) ва сиз ўқиган ёки яширган хабарлар рўйхати сақланади."], ["Илова нимага кирмайди", "Илова контактларингиз, жойлашувингиз, камера, микрофон, галерея ёки бошқа файлларингизга кирмайди. \"Қўнғироқ\" ва \"SMS\" тугмалари фақат сиз босганингизда телефонингизнинг ўз иловасини очади — илованинг ўзи қўнғироқ қилмайди ва SMS юбормайди."], ["Маълумотлар қаерда сақланади", "Бепул режимда — фақат шу қурилмада. Булут синхронизацияси бор тарифда — қўшимча равишда ҳимояланган серверда; қурилма ва сервер ўртасидаги алоқа шифрланган (HTTPS). Ҳар бир фойдаланувчи фақат ўз маълумотларини кўра олади."], ["Маълумотлардан фойдаланиш", "Маълумотларингиз фақат илова вазифаларини бажариш учун ишлатилади: қарз ва молия ҳисобини юритиш, статистика, қайдлар, эслатмалар, қурилмалар ўртасида синхронлаш. Иловада реклама йўқ, маълумотларингиз сотилмайди ва реклама мақсадида учинчи шахсларга берилмайди."], ["Учинчи томон хизматлари", "Валюта курслари Ўзбекистон Марказий банкининг очиқ API'сидан (cbu.uz) олинади — бу сўровда шахсий маълумотингиз юборилмайди. Булут маълумотлари ҳостинг (сервер) хизмати провайдерида фақат сақлаш мақсадида жойлашади. Илова барқарорлиги учун илова ишдан чиққанда Google Firebase Crashlytics хизматига техник хатолар ҳисоботи юборилади: қурилма модели, Android ва илова версияси, хатонинг техник тавсифи. Бу ҳисоботларда сиз киритган маълумотлар (исмлар, суммалар, телефон рақамлари) ва логинингиз бўлмайди."], ["Рухсатлар", "Билдиришномалар — қарз қайтариш муддати ҳақидаги эслатмалар (Созламаларда ўчириш мумкин) ва қайдга ўзингиз қўйган вақтдаги эслатма учун. Уйғоткичлар ва эслатмалар — қайд эслатмаси аниқ ўз вақтида чиқиши учун. Бармоқ изи — иловани қулфлаш учун; текширувни телефонингиз ўзи бажаради, бармоқ изи маълумоти иловага берилмайди. Интернет — синхронлаш ва валюта курслари учун."], ["Хавфсизлик", "PIN-код қурилмада очиқ ҳолда эмас, хешланган кўринишда сақланади. Ҳисоб пароли ўзгартирилса, барча қурилмалардаги сессиялар бекор қилинади. Шунга қарамай, интернет орқали узатишнинг ҳеч бир усули мутлақ хавфсиз эмаслигини ёдда тутинг."], ["Сақлаш муддати ва ўчириш", "Қурилмадаги маълумотларни исталган вақтда Созламалар → \"Маълумотларни ўчириш\" орқали ўчиришингиз мумкин. Ҳисобингиз ва булутдаги барча маълумотларни Созламалар → \"Аккаунтни ўчириш\" орқали ўзингиз ўчиришингиз мумкин."], ["Ёш чегараси", "Илова фақат 18 ёш ва ундан катта фойдаланувчилар учун мўлжалланган. 18 ёшга тўлмаган шахслардан атайлаб маълумот йиғилмайди; бундай ҳисоб аниқланса, у ва унга тегишли маълумотлар ўчирилади."], ["Ўзгаришлар ва алоқа", "Сиёсат янгиланиши мумкин; муҳим ўзгаришлар илова орқали эълон қилинади. Саволлар ва маълумотларга оид сўровлар учун: Созламалар → \"Дастурчи билан алоқа\". Илова ичидаги \"Хабарлар\" бўлимида администратор эълонлари кўрсатилади; ҳисобга кирган бўлсангиз, хабарларнинг ўқилганлик ҳолати ҳисобингизга боғлаб серверда сақланади, акс ҳолда фақат қурилмангизда."]], "delete_link": "Аккаунтни ўчириш"}, "ru": {"title": "Политика конфиденциальности", "updated": "Последнее обновление: 18 ноября 2026 г.", "intro": "Эта политика объясняет, какие данные собирает приложение Qarznoma, где их хранит, для чего использует и как вы можете ими управлять.", "sections": [["Данные, которые вы вводите", "Должники (имя, номер телефона, заметка), суммы долгов, даты и заметки; финансовые записи (доходы, расходы, конвертации), категории, теги и цели накоплений; заметки (текст, теги, цвет и время напоминания). Эти данные вводите и изменяете только вы."], ["Данные аккаунта и устройства", "Ваш аккаунт: логин, имя, тариф и срок его действия, способ создания аккаунта (регистрация в приложении или администратор). При использовании облачной синхронизации: идентификатор устройства (Android ID) и модель устройства — только для контроля количества устройств, подключённых к аккаунту. Также хранятся время последнего использования приложения (активность), история платежей, внесённая администратором (сумма, тариф, дата), и список прочитанных или скрытых вами сообщений."], ["К чему приложение не имеет доступа", "Приложение не получает доступ к вашим контактам, местоположению, камере, микрофону, галерее и другим файлам. Кнопки «Позвонить» и «SMS» лишь открывают приложение вашего телефона по вашему нажатию — само приложение не звонит и не отправляет SMS."], ["Где хранятся данные", "В бесплатном режиме — только на этом устройстве. На тарифе с облачной синхронизацией — дополнительно на защищённом сервере; связь между устройством и сервером зашифрована (HTTPS). Каждый пользователь видит только свои данные."], ["Использование данных", "Данные используются только для работы приложения: ведения долгов и финансов, статистики, заметок, напоминаний, синхронизации между устройствами. В приложении нет рекламы, ваши данные не продаются и не передаются третьим лицам в рекламных целях."], ["Сторонние сервисы", "Курсы валют загружаются из открытого API Центрального банка Узбекистана (cbu.uz) — при этом ваши личные данные не передаются. Облачные данные размещаются у хостинг-провайдера (сервера) исключительно для хранения. Для стабильной работы при сбое приложения в сервис Google Firebase Crashlytics отправляется технический отчёт об ошибке: модель устройства, версии Android и приложения, техническое описание ошибки. В этих отчётах нет введённых вами данных (имён, сумм, номеров телефонов) и вашего логина."], ["Разрешения", "Уведомления — для напоминаний о сроках возврата долгов (можно отключить в Настройках) и напоминаний, которые вы задали для заметок. Будильники и напоминания — чтобы напоминания по заметкам приходили точно вовремя. Отпечаток пальца — для блокировки приложения; проверку выполняет сам телефон, данные отпечатка приложению не передаются. Интернет — для синхронизации и курсов валют."], ["Безопасность", "PIN-код хранится на устройстве не в открытом виде, а в виде хэша. При смене пароля аккаунта все сессии на всех устройствах завершаются. Тем не менее помните, что ни один способ передачи данных через интернет не является абсолютно безопасным."], ["Срок хранения и удаление", "Данные на устройстве можно удалить в любой момент через Настройки → «Удалить данные». Аккаунт и все данные в облаке можно удалить самостоятельно через Настройки → «Удалить аккаунт»."], ["Возрастное ограничение", "Приложение предназначено только для пользователей в возрасте 18 лет и старше. Мы намеренно не собираем данные лиц младше 18 лет; если такой аккаунт будет обнаружен, он и связанные с ним данные будут удалены."], ["Изменения и связь", "Политика может обновляться; о существенных изменениях будет сообщено в приложении. По вопросам и запросам, касающимся данных: Настройки → «Связь с разработчиком». В разделе «Сообщения» показываются объявления администратора; если вы вошли в аккаунт, отметка о прочтении хранится на сервере и привязана к аккаунту, иначе — только на вашем устройстве."]], "delete_link": "Удаление аккаунта"}, "en": {"title": "Privacy Policy", "updated": "Last updated: November 18, 2026", "intro": "This policy explains what data the Qarznoma app collects, where it is stored, why it is used and how you can control it.", "sections": [["Data you enter", "Debtors (name, phone number, note), debt amounts, dates and notes; finance records (income, expenses, conversions), categories, tags and savings goals; notes (text, tags, colour and reminder time). Only you enter and change this data."], ["Account and device data", "Your account: login, name, plan type and its expiry date, and how the account was created (in-app registration or administrator). When cloud sync is used: the device identifier (Android ID) and device model — only to control the number of devices connected to the account. We also store when you last used the app (activity), the payment history recorded by the administrator (amount, plan, date) and the list of messages you have read or hidden."], ["What the app does not access", "The app does not access your contacts, location, camera, microphone, gallery or other files. The \"Call\" and \"SMS\" buttons only open your phone's own app when you tap them — the app itself never calls or sends SMS."], ["Where data is stored", "In the free mode — only on this device. On a plan with cloud sync — additionally on a protected server; the connection between the device and the server is encrypted (HTTPS). Each user can see only their own data."], ["How data is used", "Your data is used only to provide the app's features: keeping debt and finance records, statistics, notes, reminders and syncing between devices. The app has no ads, and your data is not sold or shared with third parties for advertising."], ["Third-party services", "Exchange rates are loaded from the open API of the Central Bank of Uzbekistan (cbu.uz) — no personal data is sent in these requests. Cloud data is stored with a hosting (server) provider solely for storage. To keep the app stable, when the app crashes a technical error report is sent to Google Firebase Crashlytics: device model, Android and app versions, and a technical description of the error. These reports do not contain the data you enter (names, amounts, phone numbers) or your login."], ["Permissions", "Notifications — for repayment date reminders (can be turned off in Settings) and for reminders you set on notes. Alarms & reminders — so that note reminders appear exactly on time. Fingerprint — to lock the app; the check is performed by your phone and fingerprint data is never given to the app. Internet — for syncing and exchange rates."], ["Security", "Your PIN is stored on the device as a hash, not in plain text. When the account password changes, sessions on all devices are ended. Still, remember that no method of transmission over the internet is completely secure."], ["Retention and deletion", "You can delete the data on your device at any time via Settings → \"Delete data\". You can delete your account and all cloud data yourself via Settings → \"Delete account\"."], ["Age requirement", "The app is intended only for users aged 18 and over. We do not knowingly collect data from anyone under 18; if such an account is found, it and its data will be deleted."], ["Changes and contact", "This policy may be updated; significant changes will be announced in the app. For questions and data requests: Settings → \"Contact developer\". Administrator announcements are shown in the in-app \"Messages\" section; if you are signed in, read status is stored on the server linked to your account, otherwise only on your device."]], "delete_link": "Delete account"}};
+const THEME_L={'uz':["Tungi rejim","Kunduzgi rejim"],'uz-Cyrl':["Тунги режим","Кундузги режим"],
+'ru':["Тёмная тема","Светлая тема"],'en':["Dark mode","Light mode"]};
+const FOOT={'uz':["Maxfiylik siyosati","Akkauntni o'chirish"],'uz-Cyrl':["Махфийлик сиёсати","Аккаунтни ўчириш"],
+'ru':["Политика конфиденциальности","Удаление аккаунта"],'en':["Privacy policy","Delete account"]};
+const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+function pickLang(){try{const q=new URLSearchParams(location.search).get('lang');if(q&&T[q])return q}catch(e){}
+try{const s=localStorage.getItem('qz_lang');if(s&&T[s])return s}catch(e){}
+const n=(navigator.language||'uz').toLowerCase();if(n.startsWith('ru'))return'ru';if(n.startsWith('en'))return'en';
+if(n.startsWith('uz-cyrl'))return'uz-Cyrl';return'uz'}
+let lang=pickLang();
+function curTheme(){return document.documentElement.getAttribute('data-theme')||
+(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}
+function setTheme(t){const r=document.documentElement;if(t)r.setAttribute('data-theme',t);else r.removeAttribute('data-theme');
+try{t?localStorage.setItem('qz_theme',t):localStorage.removeItem('qz_theme')}catch(e){}themeBtn()}
+try{const t=localStorage.getItem('qz_theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}
+function toggleTheme(){setTheme(curTheme()==='dark'?'light':'dark')}
+/* Tugma bosilganda NIMA bo'lishini ko'rsatadi: yorug'da "🌙 Tungi rejim", qorong'ida "☀ Kunduzgi rejim" */
+function themeBtn(){const b=document.getElementById('themeBtn');if(!b)return;const dark=curTheme()==='dark';
+const lbl=THEME_L[lang][dark?1:0];b.innerHTML=(dark?SUN:MOON)+'<span class="lbl">'+lbl+'</span>';
+b.setAttribute('aria-label',lbl);b.title=lbl}
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',themeBtn)}catch(e){}
+/* Til menyusi — brauzerning oddiy <select> ro'yxati bezatib bo'lmaydi, shuning uchun o'zimizniki */
+const CODES={'uz':'UZ','uz-Cyrl':'ЎЗ','ru':'RU','en':'EN'};
+const CHECK='<svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+function menuOpen(open){const b=document.getElementById('langBtn'),m=document.getElementById('langMenu');
+m.hidden=!open;b.setAttribute('aria-expanded',open);
+if(open){const cur=m.querySelector('[aria-selected="true"]')||m.firstChild;cur.focus()}}
+function pickFromMenu(code){lang=code;try{localStorage.setItem('qz_lang',code)}catch(e){}
+try{const u=new URL(location.href);u.searchParams.set('lang',code);history.replaceState(null,'',u)}catch(e){}
+menuOpen(false);document.getElementById('langBtn').focus();render()}
+function initLangMenu(){const b=document.getElementById('langBtn'),m=document.getElementById('langMenu');
+m.innerHTML=LANGS.map(([c,n])=>'<li role="option" tabindex="-1" data-code="'+c+'"><span class="code">'+CODES[c]+
+'</span><span class="nm">'+n+'</span>'+CHECK+'</li>').join('');
+b.onclick=e=>{e.stopPropagation();menuOpen(m.hidden)};
+m.onclick=e=>{const li=e.target.closest('li');if(li)pickFromMenu(li.dataset.code)};
+document.addEventListener('click',e=>{if(!m.hidden&&!m.contains(e.target))menuOpen(false)});
+m.onkeydown=e=>{const items=[...m.children],i=items.indexOf(document.activeElement);
+if(e.key==='ArrowDown'){e.preventDefault();items[(i+1)%items.length].focus()}
+else if(e.key==='ArrowUp'){e.preventDefault();items[(i-1+items.length)%items.length].focus()}
+else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(i>=0)pickFromMenu(items[i].dataset.code)}
+else if(e.key==='Escape'||e.key==='Tab'){menuOpen(false);b.focus()}}}
+function langButtons(){const m=document.getElementById('langMenu');if(!m.children.length)initLangMenu();
+[...m.children].forEach(li=>li.setAttribute('aria-selected',li.dataset.code===lang));
+document.getElementById('langCur').textContent=LANGS.find(([c])=>c===lang)[1];themeBtn();const f=FOOT[lang];document.getElementById('fp').textContent=f[0];
+document.getElementById('fd').textContent=f[1];
+document.getElementById('fp').href='privacy-policy.html?lang='+lang;document.getElementById('fd').href='delete-account.html?lang='+lang}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function para(s){return esc(s).split(/\n\n+/).map(p=>'<p>'+p.replace(/\n/g,'<br>')+'</p>').join('')}
+
+const I_SHIELD='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>';
+function render(){const t=T[lang];document.documentElement.lang=lang;document.title='Qarznoma — '+t.title;langButtons();
+document.getElementById('app').innerHTML='<div class="card hero"><div class="ico">'+I_SHIELD+'</div><div><h1>'+esc(t.title)+
+'</h1><span class="updated">'+esc(t.updated)+'</span>'+para(t.intro)+'</div></div>'+
+'<nav class="card toc"><ol>'+t.sections.map(([h],i)=>'<li><a href="#s'+(i+1)+'">'+esc(h)+'</a></li>').join('')+'</ol></nav>'+
+t.sections.map(([h,b],i)=>'<section class="card sec" id="s'+(i+1)+'"><h2>'+esc(h)+'</h2>'+para(b)+'</section>').join('')+
+'<p class="note"><a href="delete-account.html?lang='+lang+'">'+esc(t.delete_link)+' →</a></p>'}
+render();</script>
+</body>
+</html>

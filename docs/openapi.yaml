@@ -1,0 +1,1175 @@
+openapi: 3.0.3
+info:
+  title: Qarznoma API
+  version: "1.0"
+  description: |
+    Backend for the Qarznoma Android app, the admin app and the web pages.
+
+    **Auth.** `POST /v1/auth/login` (or `/register`, `/google`) returns an `access_token` (JWT, 15 min)
+    and a `refresh_token` (60 days). Send `Authorization: Bearer <access_token>`. When a request returns
+    `401`, call `POST /v1/auth/refresh` once; if that also fails, log the user out.
+    Refresh tokens rotate: every refresh returns a new pair, and the old refresh token stops working
+    (after a 60 s grace period, so a lost response on a bad network doesn't log the user out).
+    Changing the login or password (admin) revokes all sessions of that user immediately.
+
+    **Errors** always look like `{"error": {"code": "...", "message": "..."}}`. Branch on `code`;
+    `message` is human-readable Uzbek text that can be shown to the user.
+
+    **Dates** are returned as ISO-8601 UTC (`2026-11-17T12:42:00Z`). Inputs accept ISO-8601 or
+    `YYYY-MM-DD HH:MM:SS+00`. **Money** is an integer in minor units (no floats).
+
+    **Plans** (`premium_plan_type_index`): 0 = FREE, 1 = BASIC, 2 = PLUS, 3 = PRO.
+    Cloud sync writes need an active, non-expired PRO plan.
+
+    **Click "Authorize"** above and paste an access token to try authenticated endpoints here.
+servers:
+  - url: /
+    description: This server
+tags:
+  - name: auth
+    description: Login, registration, tokens
+  - name: profile
+    description: Current user, devices, settings, announcements
+  - name: sync
+    description: Offline-first cloud sync (PRO)
+  - name: account-deletion
+    description: Public account deletion request (Google Play requirement)
+  - name: billing
+    description: Google Play Billing (phase 2, not available yet)
+  - name: admin
+    description: Admin app only (role = admin)
+  - name: system
+    description: Health check
+
+security:
+  - bearer: []
+
+paths:
+  /healthz:
+    get:
+      tags: [system]
+      summary: Health check (also checks the database)
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: object, properties: { status: { type: string, example: ok } } }
+        "503":
+          description: Database unreachable
+          content:
+            application/json:
+              schema: { type: object, properties: { status: { type: string, example: db_down } } }
+
+  # ───────────────────────────── auth ─────────────────────────────
+  /v1/auth/login:
+    post:
+      tags: [auth]
+      summary: Log in with login + password
+      description: Rate limited to 10 attempts per minute per IP+login.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password]
+              properties:
+                login: { type: string, example: ali_99 }
+                password: { type: string, format: password, example: secret1 }
+      responses:
+        "200": { $ref: "#/components/responses/Auth" }
+        "401": { $ref: "#/components/responses/Error", description: "`INVALID_CREDENTIALS`" }
+        "403": { $ref: "#/components/responses/Error", description: "`ACCOUNT_BLOCKED`" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/auth/register:
+    post:
+      tags: [auth]
+      summary: Create an account (self-service, FREE plan)
+      description: |
+        Login must match `^[a-z0-9_]{3,32}$` (it is lower-cased first). Password at least 6 characters.
+        Use `/v1/auth/login-available` and `/v1/auth/suggest-login` while the user types.
+        Rate limited to 5 per hour per IP.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password]
+              properties:
+                login: { type: string, example: ali_99 }
+                password: { type: string, format: password, minLength: 6 }
+                full_name: { type: string, example: Ali Valiyev }
+      responses:
+        "201": { $ref: "#/components/responses/Auth" }
+        "400": { $ref: "#/components/responses/Error", description: "`INVALID_LOGIN` or `WEAK_PASSWORD`" }
+        "409": { $ref: "#/components/responses/Error", description: "`LOGIN_TAKEN`" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/auth/google:
+    post:
+      tags: [auth]
+      summary: Sign in / sign up with Google
+      description: |
+        Send the Google ID token from Credential Manager. `nonce` is the **raw** nonce; the server
+        checks that the token's `nonce` claim equals hex(SHA-256(raw nonce)).
+        A new Google user gets a FREE account with a login generated from the email.
+        Returns `501 NOT_CONFIGURED` if the server has no Google client ID.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id_token, nonce]
+              properties:
+                id_token: { type: string }
+                nonce: { type: string }
+                full_name: { type: string }
+      responses:
+        "200": { $ref: "#/components/responses/Auth" }
+        "401": { $ref: "#/components/responses/Error", description: "Invalid token or nonce" }
+        "403": { $ref: "#/components/responses/Error", description: "`ACCOUNT_BLOCKED`" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+        "501": { $ref: "#/components/responses/Error", description: "`NOT_CONFIGURED`" }
+
+  /v1/auth/refresh:
+    post:
+      tags: [auth]
+      summary: Exchange a refresh token for a new token pair
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshBody" }
+      responses:
+        "200": { $ref: "#/components/responses/Auth" }
+        "401": { $ref: "#/components/responses/Error", description: "Refresh token invalid, expired or revoked: log out" }
+        "403": { $ref: "#/components/responses/Error", description: "`ACCOUNT_BLOCKED`" }
+
+  /v1/auth/logout:
+    post:
+      tags: [auth]
+      summary: Revoke a refresh token
+      description: Always returns 204, even if the token is unknown.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RefreshBody" }
+      responses:
+        "204": { description: Logged out }
+
+  /v1/auth/login-available:
+    get:
+      tags: [auth]
+      summary: Check if a login is free (for the registration form)
+      security: []
+      parameters:
+        - { name: login, in: query, required: true, schema: { type: string }, example: ali_99 }
+      responses:
+        "200":
+          description: "`available` is false for taken or invalid logins"
+          content:
+            application/json:
+              schema: { type: object, properties: { available: { type: boolean } } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/auth/suggest-login:
+    get:
+      tags: [auth]
+      summary: Suggest a free login based on a name
+      security: []
+      parameters:
+        - { name: base, in: query, schema: { type: string }, example: ali }
+      responses:
+        "200":
+          description: A login that is free right now
+          content:
+            application/json:
+              schema: { type: object, properties: { login: { type: string, example: ali_4821 } } }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ───────────────────────────── profile ─────────────────────────────
+  /v1/me:
+    get:
+      tags: [profile]
+      summary: Current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PremiumUser" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    delete:
+      tags: [profile]
+      summary: Delete my account and all its data (cannot be undone)
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/app-settings:
+    get:
+      tags: [profile]
+      summary: Public app settings (support contacts, prices, plan limits)
+      security: []
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppSettings" }
+
+  /v1/announcements:
+    get:
+      tags: [profile]
+      summary: Announcements for the current user
+      description: |
+        Without a token: only `target=ALL`. With a token: also the ones for the user's plan
+        (an expired plan counts as FREE) and for the user personally. An invalid token gives 401.
+      security: [{}, { bearer: [] }]
+      responses:
+        "200":
+          description: Newest first
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Announcement" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/announcements/reads:
+    get:
+      tags: [profile]
+      summary: Which announcements I've read
+      responses:
+        "200":
+          description: Map of announcement id → is_hidden
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: { type: boolean }
+              example: { "6f1c...": false }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+    post:
+      tags: [profile]
+      summary: Mark announcements as read (and optionally hidden)
+      description: Unknown ids are skipped. Hidden is sticky (sending `hidden=false` later doesn't unhide).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids: { type: array, items: { type: string, format: uuid } }
+                hidden: { type: boolean, default: false }
+      responses:
+        "204": { description: Saved }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /v1/devices:
+    get:
+      tags: [profile]
+      summary: My registered devices
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Device" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /v1/devices/{deviceId}:
+    parameters:
+      - $ref: "#/components/parameters/DeviceID"
+    get:
+      tags: [profile]
+      summary: One device (use to check if this device is still registered)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Device" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/Error" }
+    put:
+      tags: [profile]
+      summary: Register this device or update its name / last seen
+      description: |
+        Call on app start. A new device beyond the user's `max_devices` gets
+        `409 DEVICE_LIMIT_REACHED`; the app should then show the device list so the user can remove one.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                device_name: { type: string, example: Samsung A54 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Device" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409": { $ref: "#/components/responses/Error", description: "`DEVICE_LIMIT_REACHED`" }
+    delete:
+      tags: [profile]
+      summary: Remove a device
+      responses:
+        "204": { description: Removed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  # ───────────────────────────── sync ─────────────────────────────
+  /v1/sync/{table}:
+    parameters:
+      - $ref: "#/components/parameters/SyncTable"
+    get:
+      tags: [sync]
+      summary: Pull changed rows (keyset paging)
+      description: |
+        Returns rows changed after the cursor, **including tombstones** (`is_deleted=true`), ordered by
+        `(last_updated, id)`. Start with `since=0`. While `has_more` is true, call again with
+        `since` = last row's `last_updated` and `after_id` = last row's `id`. Save the cursor only after
+        the page is stored locally. Readable on any plan (only writes need PRO).
+
+        The row shape depends on `{table}`: see the `*Row` schemas below.
+      parameters:
+        - { name: since, in: query, schema: { type: integer, format: int64, default: 0 }, description: "`last_updated` cursor (epoch ms)" }
+        - { name: after_id, in: query, schema: { type: string }, description: "`id` of the last row of the previous page" }
+        - { name: limit, in: query, schema: { type: integer, default: 1000, maximum: 1000, minimum: 1 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  rows:
+                    type: array
+                    items:
+                      oneOf:
+                        - $ref: "#/components/schemas/DebtorRow"
+                        - $ref: "#/components/schemas/DebtRow"
+                        - $ref: "#/components/schemas/FinanceCategoryRow"
+                        - $ref: "#/components/schemas/FinanceTagRow"
+                        - $ref: "#/components/schemas/FinanceGoalRow"
+                        - $ref: "#/components/schemas/FinanceTransactionRow"
+                        - $ref: "#/components/schemas/NoteRow"
+                  has_more: { type: boolean }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/Error", description: Unknown table }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+    post:
+      tags: [sync]
+      summary: Push rows (upsert, all-or-nothing)
+      description: |
+        Body is a JSON array of up to **500** rows of the `{table}` shape. The whole chunk is validated and
+        written in one transaction: if any row is invalid, nothing is saved.
+
+        - Server-managed fields (`premium_user_id`, `last_updated`, `total_debts_amount`) are ignored;
+          if `premium_user_id` is sent it must be your own id, otherwise 422.
+        - Deleting = push the row with `is_deleted: true`. A deleted row can never be undeleted.
+        - A row whose `id` belongs to another user → 422 (whole chunk rejected).
+        - Debts: `debtor_id` must be one of your debtors; debtor totals are recomputed by the server.
+        - Needs an active PRO plan (`403 FORBIDDEN_NOT_PRO`).
+        - Going over the plan's debtor/debt limit → `409 PLAN_LIMIT`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              maxItems: 500
+              items:
+                oneOf:
+                  - $ref: "#/components/schemas/DebtorRow"
+                  - $ref: "#/components/schemas/DebtRow"
+                  - $ref: "#/components/schemas/FinanceCategoryRow"
+                  - $ref: "#/components/schemas/FinanceTagRow"
+                  - $ref: "#/components/schemas/FinanceGoalRow"
+                  - $ref: "#/components/schemas/FinanceTransactionRow"
+                  - $ref: "#/components/schemas/NoteRow"
+            example:
+              - id: 3f0c6c1e-6a2b-4c5e-9a43-0f3a1b2c3d4e
+                full_name: Ali
+                phone_number: "+998901234567"
+                currency_type: 1
+                repayment_date: "2026-11-30T12:00:00Z"
+                is_deleted: false
+      responses:
+        "204": { description: Saved }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Error", description: "`FORBIDDEN_NOT_PRO` or `ACCOUNT_BLOCKED`" }
+        "404": { $ref: "#/components/responses/Error", description: Unknown table }
+        "409": { $ref: "#/components/responses/Error", description: "`PLAN_LIMIT`" }
+        "413": { $ref: "#/components/responses/Error", description: More than 500 rows or body over 16 MB }
+        "422": { $ref: "#/components/responses/Error", description: "`VALIDATION`: the message says which row and field" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  /v1/sync/debtors/by-ids:
+    post:
+      tags: [sync]
+      summary: Fetch specific debtors by id (including deleted ones)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [ids]
+              properties:
+                ids: { type: array, maxItems: 500, items: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Only your own debtors; unknown ids are skipped
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/DebtorRow" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  # ───────────────────────────── account deletion ─────────────────────────────
+  /v1/account-deletion-requests:
+    post:
+      tags: [account-deletion]
+      summary: Request account deletion from the website
+      description: |
+        Used by `/delete-account`. Checks the login and password, then creates a PENDING request
+        that an admin approves or rejects. `phone` must contain at least 7 digits.
+        Rate limited to 5 per hour.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [login, password, phone]
+              properties:
+                login: { type: string }
+                password: { type: string, format: password }
+                phone: { type: string, example: "+998 90 123 45 67" }
+                lang: { type: string, enum: [uz, uz-Cyrl, ru, en], default: uz }
+      responses:
+        "202":
+          description: Request created
+          content:
+            application/json:
+              schema: { type: object, properties: { status: { type: string, example: PENDING } } }
+        "400": { $ref: "#/components/responses/Error", description: "`VALIDATION`: phone has fewer than 7 digits" }
+        "401": { $ref: "#/components/responses/Error", description: "`INVALID_CREDENTIALS`" }
+        "409": { $ref: "#/components/responses/Error", description: "`REQUEST_EXISTS`" }
+        "422": { $ref: "#/components/responses/Error" }
+        "429": { $ref: "#/components/responses/RateLimited" }
+
+  # ───────────────────────────── billing ─────────────────────────────
+  /v1/billing/google/verify:
+    post:
+      tags: [billing]
+      summary: Verify a Google Play purchase (not available yet)
+      responses:
+        "501": { $ref: "#/components/responses/Error", description: "`NOT_CONFIGURED`" }
+  /v1/billing/google/rtdn:
+    post:
+      tags: [billing]
+      summary: Google Play real-time developer notifications (Pub/Sub push; not available yet)
+      security: []
+      responses:
+        "501": { $ref: "#/components/responses/Error", description: "`NOT_CONFIGURED`" }
+
+  # ───────────────────────────── admin ─────────────────────────────
+  /v1/admin/users:
+    get:
+      tags: [admin]
+      summary: All users, newest first
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/PremiumUser" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [admin]
+      summary: Create a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: "#/components/schemas/AdminUserBody"
+                - type: object
+                  required: [login, password]
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PremiumUser" }
+        "400": { $ref: "#/components/responses/Error", description: "`INVALID_LOGIN` or `WEAK_PASSWORD`" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "409": { $ref: "#/components/responses/Error", description: "`LOGIN_TAKEN`" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/users/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    put:
+      tags: [admin]
+      summary: Update a user (partial; only sent fields change)
+      description: |
+        Changing `login` or `password` logs the user out everywhere. Lowering `max_devices` removes
+        the least recently seen devices. Send `"max_devices": null` to use the default from app settings.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AdminUserBody" }
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PremiumUser" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error", description: "`LOGIN_TAKEN`" }
+    delete:
+      tags: [admin]
+      summary: Delete a user and all their data
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/users/{id}/devices:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    get:
+      tags: [admin]
+      summary: A user's devices
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Device" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/admin/users/{id}/devices/{deviceId}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+      - $ref: "#/components/parameters/DeviceID"
+    delete:
+      tags: [admin]
+      summary: Remove a user's device
+      responses:
+        "204": { description: Removed }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/app-settings:
+    get:
+      tags: [admin]
+      summary: App settings
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppSettings" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    put:
+      tags: [admin]
+      summary: Replace app settings (send every field; missing ones become null)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/AppSettings" }
+      responses:
+        "200":
+          description: Saved settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AppSettings" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/deletion-requests:
+    get:
+      tags: [admin]
+      summary: Account deletion requests, newest first
+      parameters:
+        - { name: status, in: query, schema: { type: string, enum: [PENDING, APPROVED, REJECTED] } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/DeletionRequest" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/admin/deletion-requests/{id}/approve:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      tags: [admin]
+      summary: Approve a request (deletes the user and all their data)
+      requestBody: { $ref: "#/components/requestBodies/AdminNote" }
+      responses:
+        "200":
+          description: Resolved request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletionRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error", description: "`NOT_PENDING`: already resolved" }
+
+  /v1/admin/deletion-requests/{id}/reject:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    post:
+      tags: [admin]
+      summary: Reject a request
+      requestBody: { $ref: "#/components/requestBodies/AdminNote" }
+      responses:
+        "200":
+          description: Resolved request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DeletionRequest" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+        "409": { $ref: "#/components/responses/Error", description: "`NOT_PENDING`: already resolved" }
+
+  /v1/admin/stats:
+    get:
+      tags: [admin]
+      summary: User counts
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total: { type: integer }
+                  active: { type: integer }
+                  expired: { type: integer }
+                  blocked: { type: integer }
+                  new_last_30d: { type: integer }
+                  by_plan:
+                    type: object
+                    description: Plan index → user count
+                    additionalProperties: { type: integer }
+                    example: { "0": 120, "1": 4, "2": 2, "3": 31 }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/admin/last-seen:
+    get:
+      tags: [admin]
+      summary: Last time each user was seen on any device
+      responses:
+        "200":
+          description: Map of user id → timestamp
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: { type: string, format: date-time }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/admin/audit-log:
+    get:
+      tags: [admin]
+      summary: Admin actions, newest first
+      parameters:
+        - { name: limit, in: query, schema: { type: integer, default: 200, maximum: 1000 } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/AuditEntry" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+
+  /v1/admin/payments:
+    get:
+      tags: [admin]
+      summary: Payments, newest first (up to 1000)
+      parameters:
+        - { name: user_id, in: query, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Payment" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [admin]
+      summary: Record a payment
+      description: |
+        Only records it; it does **not** extend the user's plan (do that with `PUT /v1/admin/users/{id}`).
+        Idempotent when `id` is sent: repeating the same id does nothing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [premium_user_id, amount, currency, plan_type_index, months, method]
+              properties:
+                id: { type: string, format: uuid, description: Client-generated id for idempotency }
+                premium_user_id: { type: string, format: uuid }
+                amount: { type: integer, format: int64, description: Minor units }
+                currency: { type: string, example: UZS }
+                plan_type_index: { $ref: "#/components/schemas/PlanIndex" }
+                months: { type: integer }
+                method: { $ref: "#/components/schemas/PaymentMethod" }
+                note: { type: string }
+                paid_at: { type: string, format: date-time, description: Defaults to now }
+      responses:
+        "201": { description: Recorded }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/payments/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    delete:
+      tags: [admin]
+      summary: Delete a payment record
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/announcements:
+    get:
+      tags: [admin]
+      summary: All announcements (including deleted), newest first
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Announcement" } }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+    post:
+      tags: [admin]
+      summary: Create an announcement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, body]
+              properties:
+                id: { type: string, format: uuid }
+                title: { type: string }
+                body: { type: string }
+                target: { type: string, enum: [ALL, PLAN, USER], default: ALL }
+                target_plan: { allOf: [{ $ref: "#/components/schemas/PlanIndex" }], nullable: true, description: Required when target = PLAN }
+                target_user_id: { type: string, format: uuid, nullable: true, description: Required when target = USER }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Announcement" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "422": { $ref: "#/components/responses/Error" }
+
+  /v1/admin/announcements/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ID"
+    delete:
+      tags: [admin]
+      summary: Delete an announcement (soft delete)
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "403": { $ref: "#/components/responses/Forbidden" }
+        "404": { $ref: "#/components/responses/Error" }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    ID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    DeviceID:
+      name: deviceId
+      in: path
+      required: true
+      schema: { type: string }
+      description: Stable id generated by the app per installation
+    SyncTable:
+      name: table
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [debtors, debts, finance_categories, finance_tags, finance_goals, finance_transactions, notes]
+
+  requestBodies:
+    AdminNote:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              note: { type: string, description: Optional note for the audit log }
+
+  responses:
+    Auth:
+      description: Session tokens
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/AuthResponse" }
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: "`UNAUTHORIZED`: missing, invalid or expired access token. Refresh and retry once."
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Forbidden:
+      description: "`FORBIDDEN`: not an admin"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    RateLimited:
+      description: "`RATE_LIMITED`"
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: INVALID_CREDENTIALS
+              description: |
+                UNAUTHORIZED, INVALID_CREDENTIALS, ACCOUNT_BLOCKED, FORBIDDEN, FORBIDDEN_NOT_PRO,
+                NOT_FOUND, VALIDATION, INVALID_LOGIN, WEAK_PASSWORD, LOGIN_TAKEN, DEVICE_LIMIT_REACHED,
+                PLAN_LIMIT, REQUEST_EXISTS, NOT_PENDING, RATE_LIMITED, NOT_CONFIGURED, INTERNAL
+            message: { type: string, example: "login yoki parol noto'g'ri" }
+
+    RefreshBody:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token: { type: string }
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        expires_in: { type: integer, description: Access token lifetime in seconds, example: 900 }
+        user_id: { type: string, format: uuid }
+
+    PlanIndex:
+      type: integer
+      minimum: 0
+      maximum: 3
+      description: 0 = FREE, 1 = BASIC, 2 = PLUS, 3 = PRO
+
+    PaymentMethod:
+      type: string
+      enum: [CASH, CARD, PAYME, CLICK, GOOGLE_PLAY, OTHER]
+
+    PremiumUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        login: { type: string }
+        full_name: { type: string }
+        description: { type: string }
+        phone_number: { type: string }
+        premium_plan_type_index: { $ref: "#/components/schemas/PlanIndex" }
+        start_at: { type: string, format: date-time }
+        expiry_at: { type: string, format: date-time }
+        is_active: { type: boolean, description: false = blocked by admin }
+        created_at: { type: string, format: date-time }
+        max_devices: { type: integer, nullable: true, description: null = use app settings default }
+        credentials_updated_at: { type: string, format: date-time }
+        signup_source: { type: string, enum: [ADMIN, SELF, GOOGLE] }
+
+    AdminUserBody:
+      type: object
+      properties:
+        id: { type: string, format: uuid, description: Create only; optional client-generated id }
+        login: { type: string }
+        password: { type: string, format: password, description: Empty / missing = unchanged (update) }
+        full_name: { type: string }
+        description: { type: string }
+        phone_number: { type: string }
+        premium_plan_type_index: { $ref: "#/components/schemas/PlanIndex" }
+        start_at: { type: string, format: date-time }
+        expiry_at: { type: string, format: date-time }
+        is_active: { type: boolean }
+        max_devices: { type: integer, nullable: true }
+
+    AppSettings:
+      type: object
+      properties:
+        default_max_devices: { type: integer, example: 1 }
+        telegram_username: { type: string, nullable: true, description: Without "@" }
+        support_phone: { type: string, nullable: true }
+        sms_text: { type: string, nullable: true }
+        price_basic: { type: string, nullable: true }
+        price_basic_3m: { type: string, nullable: true }
+        price_basic_6m: { type: string, nullable: true }
+        price_basic_12m: { type: string, nullable: true }
+        price_plus: { type: string, nullable: true }
+        price_plus_3m: { type: string, nullable: true }
+        price_plus_6m: { type: string, nullable: true }
+        price_plus_12m: { type: string, nullable: true }
+        price_pro: { type: string, nullable: true }
+        price_pro_3m: { type: string, nullable: true }
+        price_pro_6m: { type: string, nullable: true }
+        price_pro_12m: { type: string, nullable: true }
+        free_max_debtors: { type: integer, nullable: true, description: null = server default }
+        free_max_debts: { type: integer, nullable: true }
+        basic_max_debtors: { type: integer, nullable: true }
+        basic_max_debts: { type: integer, nullable: true }
+        plus_max_debtors: { type: integer, nullable: true }
+        plus_max_debts: { type: integer, nullable: true }
+        pro_max_debtors: { type: integer, nullable: true }
+        pro_max_debts: { type: integer, nullable: true }
+
+    Device:
+      type: object
+      properties:
+        premium_user_id: { type: string, format: uuid }
+        device_id: { type: string }
+        device_name: { type: string }
+        last_seen_at: { type: string, format: date-time }
+        created_at: { type: string, format: date-time }
+
+    Announcement:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        body: { type: string }
+        target: { type: string, enum: [ALL, PLAN, USER] }
+        target_plan: { allOf: [{ $ref: "#/components/schemas/PlanIndex" }], nullable: true }
+        target_user_id: { type: string, format: uuid, nullable: true }
+        is_deleted: { type: boolean }
+        created_at: { type: string, format: date-time }
+
+    DeletionRequest:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        premium_user_id: { type: string, format: uuid }
+        login: { type: string }
+        contact_phone: { type: string }
+        account_phone: { type: string }
+        lang: { type: string }
+        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+        admin_note: { type: string }
+        ip: { type: string }
+        created_at: { type: string, format: date-time }
+        resolved_at: { type: string, format: date-time, nullable: true }
+
+    AuditEntry:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        action: { type: string, example: USER_EDIT }
+        target_user_id: { type: string, format: uuid, nullable: true }
+        target_label: { type: string }
+        details: { type: string }
+        created_at: { type: string, format: date-time }
+
+    Payment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        premium_user_id: { type: string, format: uuid }
+        amount: { type: integer, format: int64 }
+        currency: { type: string }
+        plan_type_index: { $ref: "#/components/schemas/PlanIndex" }
+        months: { type: integer }
+        method: { $ref: "#/components/schemas/PaymentMethod" }
+        note: { type: string }
+        paid_at: { type: string, format: date-time }
+
+    # ── sync rows ──
+    # readOnly fields are set by the server: returned on pull, ignored on push.
+    DebtorRow:
+      type: object
+      required: [id, full_name, repayment_date]
+      properties:
+        id: { type: string, format: uuid }
+        premium_user_id: { type: string, format: uuid, readOnly: true }
+        full_name: { type: string, maxLength: 200 }
+        description: { type: string, maxLength: 5000, default: "" }
+        phone_number: { type: string, maxLength: 64, default: "" }
+        currency_type: { type: integer, minimum: 0, maximum: 4, default: 0 }
+        repayment_date: { type: string, format: date-time }
+        is_deleted: { type: boolean, default: false }
+        updated_at_client: { type: integer, format: int64, nullable: true, description: Epoch ms }
+        total_debts_amount: { type: integer, format: int64, readOnly: true, description: Sum of live debts, minor units }
+        last_updated: { type: integer, format: int64, readOnly: true, description: Sync cursor (epoch ms) }
+
+    DebtRow:
+      type: object
+      required: [id, debtor_id, debt_amount, debt_date]
+      properties:
+        id: { type: string, format: uuid }
+        debtor_id: { type: string, format: uuid }
+        debt_amount: { type: integer, format: int64, description: "Minor units. Negative = money given (lent), positive = repaid / received" }
+        debt_description: { type: string, maxLength: 5000, default: "" }
+        debt_date: { type: string, format: date-time }
+        is_deleted: { type: boolean, default: false }
+        last_updated: { type: integer, format: int64, readOnly: true }
+
+    FinanceCategoryRow:
+      type: object
+      description: "`id` is a text key unique per user (e.g. `food`), not a UUID."
+      required: [id, type, color_key, icon_key]
+      properties:
+        id: { type: string, maxLength: 64 }
+        premium_user_id: { type: string, format: uuid, readOnly: true }
+        label: { type: string, maxLength: 200, default: "" }
+        type: { type: string, enum: [INCOME, EXPENSE] }
+        color_key: { type: string, maxLength: 64 }
+        icon_key: { type: string, maxLength: 64 }
+        is_hidden: { type: boolean, default: false }
+        is_deleted: { type: boolean, default: false }
+        updated_at_client: { type: integer, format: int64, default: 0 }
+        last_updated: { type: integer, format: int64, readOnly: true }
+
+    FinanceTagRow:
+      type: object
+      required: [id, name, color_key]
+      properties:
+        id: { type: string, format: uuid }
+        premium_user_id: { type: string, format: uuid, readOnly: true }
+        name: { type: string, maxLength: 200 }
+        color_key: { type: string, maxLength: 64 }
+        is_deleted: { type: boolean, default: false }
+        updated_at_client: { type: integer, format: int64, default: 0 }
+        last_updated: { type: integer, format: int64, readOnly: true }
+
+    FinanceGoalRow:
+      type: object
+      required: [id, name, currency, target_amount, color_key, icon_key]
+      properties:
+        id: { type: string, format: uuid }
+        premium_user_id: { type: string, format: uuid, readOnly: true }
+        name: { type: string, maxLength: 200 }
+        note: { type: string, maxLength: 5000, default: "" }
+        currency: { type: string, pattern: "^[A-Z]{3}$", example: UZS }
+        target_amount: { type: integer, format: int64 }
+        saved_amount: { type: integer, format: int64, default: 0 }
+        color_key: { type: string, maxLength: 64 }
+        icon_key: { type: string, maxLength: 64 }
+        deadline: { type: string, maxLength: 64, nullable: true, example: "2027-01-01" }
+        is_deleted: { type: boolean, default: false }
+        updated_at_client: { type: integer, format: int64, default: 0 }
+        last_updated: { type: integer, format: int64, readOnly: true }
+
+    FinanceTransactionRow:
+      type: object
+      required: [id, type, currency, amount, tx_date]
+      properties:
+        id: { type: string, format: uuid }
+        premium_user_id: { type: string, format: uuid, readOnly: true }
+        type: { type: string, enum: [INCOME, EXPENSE, CONVERSION] }
+        currency: { type: string, pattern: "^[A-Z]{3}$" }
+        amount: { type: integer, format: int64, minimum: 0 }
+        to_currency: { type: string, pattern: "^[A-Z]{3}$", nullable: true, description: CONVERSION only }
+        to_amount: { type: integer, format: int64, nullable: true }
+        rate: { type: string, maxLength: 64, nullable: true }
+        category_id: { type: string, maxLength: 64, default: "" }
+        description: { type: string, maxLength: 5000, default: "" }
+        tag_ids: { type: string, maxLength: 5000, default: "", description: Comma-separated tag ids }
+        tx_date: { type: string, maxLength: 64, example: "2026-11-17" }
+        linked_debt_id: { type: string, format: uuid, nullable: true }
+        is_opening_balance: { type: boolean, default: false }
+        is_deleted: { type: boolean, default: false }
+        updated_at_client: { type: integer, format: int64, default: 0 }
+        last_updated: { type: integer, format: int64, readOnly: true }
+
+    NoteRow:
+      type: object
+      required: [id]
+      properties:
+        id: { type: string, format: uuid }
+        premium_user_id: { type: string, format: uuid, readOnly: true }
+        title: { type: string, maxLength: 5000, default: "" }
+        content: { type: string, maxLength: 1048576, default: "" }
+        color_key: { type: string, maxLength: 64, default: DEFAULT }
+        labels: { type: string, maxLength: 5000, default: "" }
+        is_pinned: { type: boolean, default: false }
+        is_archived: { type: boolean, default: false }
+        reminder_at: { type: integer, format: int64, nullable: true, description: Epoch ms }
+        is_deleted: { type: boolean, default: false }
+        updated_at_client: { type: integer, format: int64, default: 0 }
+        last_updated: { type: integer, format: int64, readOnly: true }

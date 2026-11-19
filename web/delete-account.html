@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Qarznoma — Delete account</title>
+<style>
+:root{--bg:#eef2f8;--bg2:#e4ebf6;--card:#ffffff;--text:#172033;--muted:#5d687c;--border:#dde3ee;
+--accent:#2563eb;--accent-soft:#e3ecff;--accent-text:#ffffff;--danger:#dc2626;--danger-soft:#fdecec;
+--ok:#15803d;--ok-soft:#e5f6ea;--field:#f7f9fd;--shadow:0 1px 2px rgba(16,24,40,.05),0 8px 24px rgba(16,24,40,.06)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0f17;--bg2:#101828;--card:#151b27;
+--text:#e8ecf3;--muted:#98a2b5;--border:#263042;--accent:#6ea0ff;--accent-soft:#1b2a47;--accent-text:#0b0f17;
+--danger:#ff6b6b;--danger-soft:#3a1c20;--ok:#4ade80;--ok-soft:#14301f;--field:#0f141e;--shadow:0 1px 2px rgba(0,0,0,.3)}}
+:root[data-theme="dark"]{--bg:#0b0f17;--bg2:#101828;--card:#151b27;--text:#e8ecf3;--muted:#98a2b5;--border:#263042;
+--accent:#6ea0ff;--accent-soft:#1b2a47;--accent-text:#0b0f17;--danger:#ff6b6b;--danger-soft:#3a1c20;--ok:#4ade80;
+--ok-soft:#14301f;--field:#0f141e;--shadow:0 1px 2px rgba(0,0,0,.3)}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;min-height:100vh;color:var(--text);font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+background:radial-gradient(1200px 500px at 50% -200px,var(--bg2),var(--bg));background-color:var(--bg);
+transition:background-color .2s,color .2s}
+.wrap{max-width:780px;margin:0 auto;padding:16px}
+header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:nowrap;gap:10px;align-items:center;justify-content:space-between;
+margin:0 -16px 18px;padding:12px 16px;background:color-mix(in srgb,var(--bg) 82%,transparent);
+backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;color:var(--text);text-decoration:none}
+.logo{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:18px;
+background:linear-gradient(135deg,#3b82f6,#1d4ed8)}
+.tools{display:flex;gap:8px;align-items:center}
+.ctl{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid var(--border);
+background:var(--card);color:var(--text);border-radius:999px;font:inherit;font-size:14px;font-weight:600;cursor:pointer;
+box-shadow:var(--shadow)}
+.ctl:hover{border-color:var(--accent)}.ctl:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ctl svg{width:18px;height:18px;flex:none}
+.lang-wrap{position:relative}
+.ctl .chev{width:14px;height:14px;opacity:.7;transition:transform .18s}
+.ctl[aria-expanded="true"]{border-color:var(--accent)}.ctl[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.menu{position:absolute;right:0;top:calc(100% + 8px);min-width:210px;margin:0;padding:6px;list-style:none;
+background:var(--card);border:1px solid var(--border);border-radius:16px;
+box-shadow:0 12px 32px rgba(16,24,40,.18),0 2px 6px rgba(16,24,40,.08);
+transform-origin:top right;animation:pop .14s ease-out;z-index:20}
+@keyframes pop{from{opacity:0;transform:scale(.96) translateY(-4px)}to{opacity:1;transform:none}}
+.menu li{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:11px;cursor:pointer;
+font-size:15px;font-weight:500;color:var(--text);outline:none}
+.menu li:hover,.menu li:focus{background:var(--field)}
+.menu .code{width:34px;height:24px;border-radius:7px;display:grid;place-items:center;font-size:11px;font-weight:700;
+letter-spacing:.3px;background:var(--field);border:1px solid var(--border);color:var(--muted)}
+.menu .nm{flex:1}
+.menu .ok{width:18px;height:18px;color:var(--accent);visibility:hidden}
+.menu li[aria-selected="true"]{color:var(--accent);font-weight:700}
+.menu li[aria-selected="true"] .code{background:var(--accent-soft);border-color:transparent;color:var(--accent)}
+.menu li[aria-selected="true"] .ok{visibility:visible}
+.card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:22px;margin-bottom:14px;
+box-shadow:var(--shadow)}
+.hero{display:flex;gap:16px;align-items:flex-start;padding:26px 22px}
+.hero .ico{width:52px;height:52px;border-radius:16px;flex:none;display:grid;place-items:center;
+background:var(--accent-soft);color:var(--accent)}
+.hero.danger .ico{background:var(--danger-soft);color:var(--danger)}
+.ico svg{width:26px;height:26px}
+h1{font-size:28px;line-height:1.2;margin:0 0 8px;letter-spacing:-.3px}
+h2{font-size:18px;line-height:1.35;margin:0 0 10px}
+p{margin:0 0 10px}p:last-child{margin-bottom:0}.muted{color:var(--muted)}
+ul{margin:0 0 12px;padding-left:22px}li{margin:4px 0}li::marker{color:var(--accent)}
+a{color:var(--accent);text-underline-offset:3px}
+.updated{display:inline-block;font-size:13px;color:var(--muted);background:var(--field);border:1px solid var(--border);
+border-radius:999px;padding:2px 10px;margin-bottom:12px}
+.toc ol{margin:0;padding-left:22px;columns:2;column-gap:28px}.toc li{break-inside:avoid}
+.toc a{text-decoration:none;color:var(--text)}.toc a:hover{color:var(--accent)}
+.sec{counter-increment:sec;scroll-margin-top:80px}
+.sec h2{display:flex;gap:12px;align-items:flex-start}
+.sec h2::before{content:counter(sec);flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;
+font-size:14px;background:var(--accent-soft);color:var(--accent);margin-top:-1px}
+main{counter-reset:sec}
+.method{display:flex;gap:14px;align-items:flex-start}
+.method .ico{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;
+background:var(--accent-soft);color:var(--accent)}.method .ico svg{width:20px;height:20px}
+.method>div{flex:1;min-width:0}
+.form-card{border-top:4px solid var(--danger)}
+label{display:block;font-size:14px;font-weight:600;color:var(--muted);margin:14px 0 6px}
+input[type=text],input[type=password],input[type=tel]{width:100%;padding:13px 14px;border:1px solid var(--border);
+border-radius:12px;background:var(--field);color:var(--text);font:inherit;transition:border-color .15s,box-shadow .15s}
+input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.check{display:flex;gap:10px;align-items:flex-start;margin:16px 0;color:var(--text);font-size:15px;font-weight:400}
+.check input{margin-top:4px;width:18px;height:18px;flex:none;accent-color:var(--danger)}
+.btn{width:100%;padding:15px;border:0;border-radius:14px;background:var(--danger);color:#fff;font:inherit;
+font-weight:700;cursor:pointer;transition:filter .15s,transform .05s}.btn:hover{filter:brightness(1.07)}
+.btn:active{transform:translateY(1px)}.btn:disabled{opacity:.55;cursor:default}
+.msg:empty{display:none}.msg{margin-top:14px;font-weight:600;padding:12px 14px;border-radius:12px}
+.msg.err{color:var(--danger);background:var(--danger-soft)}.msg.ok{color:var(--ok);background:var(--ok-soft)}
+.note{background:var(--accent-soft);border-radius:12px;padding:12px 14px}
+.note.warn{background:var(--danger-soft)}
+.mail{max-width:100%;overflow-wrap:anywhere;display:inline-flex;align-items:center;gap:8px;font-weight:600;text-decoration:none;padding:10px 14px;
+border-radius:12px;background:var(--accent-soft)}.mail svg{width:18px;height:18px}
+footer{color:var(--muted);font-size:14px;text-align:center;margin:26px 0 10px}
+footer a{color:var(--muted)}
+[hidden]{display:none!important}
+@media (max-width:520px){h1{font-size:23px}.hero{flex-direction:column;gap:12px}.toc ol{columns:1}
+.brand .name{display:none}.lang-btn .globe{display:none}.method{flex-direction:column;gap:10px}.ctl{padding:0 11px;font-size:13px;gap:6px}.card{padding:18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><a class="brand" href="privacy-policy.html"><span class="logo">Q</span><span class="name">Qarznoma</span></a>
+<div class="tools"><div class="lang-wrap"><button type="button" class="ctl lang-btn" id="langBtn" aria-haspopup="listbox"
+aria-expanded="false" aria-label="Language"><svg class="globe" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg><span id="langCur"></span><svg class="chev" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+<ul class="menu" id="langMenu" role="listbox" hidden></ul></div>
+<button type="button" class="ctl" id="themeBtn" onclick="toggleTheme()"></button></div></header>
+<main>
+<div class="card hero danger"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg></div><div><h1 data-t="title"></h1><p data-t="lead"></p></div></div>
+<section class="card"><h2 data-t="what_title"></h2><ul id="what"></ul><p class="muted" data-t="what_note"></p>
+<p class="note warn" data-t="sub_note"></p></section>
+<section class="card method"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div><div><h2 data-t="app_title"></h2><p data-t="app_text"></p></div></section>
+<section class="card method form-card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/></svg></div><div><h2 data-t="form_title"></h2>
+<p class="muted" data-t="form_text"></p>
+<p class="note" data-t="form_safety"></p>
+<form id="f" novalidate>
+<label for="login" data-t="login"></label><input id="login" type="text" autocomplete="username" autocapitalize="none" spellcheck="false">
+<label for="password" data-t="password"></label><input id="password" type="password" autocomplete="current-password">
+<label for="phone" data-t="phone"></label><input id="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+998 90 123 45 67">
+<label class="check"><input id="agree" type="checkbox"><span data-t="confirm"></span></label>
+<button class="btn" id="go" type="submit" data-t="submit"></button>
+<div id="msg" class="msg" role="status" aria-live="polite"></div>
+</form></div></section>
+<section class="card method"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m22 7-10 6L2 7"/></svg></div><div><h2 data-t="contact_title"></h2><p data-t="contact_text"></p>
+<p><a id="contact" class="mail" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m22 7-10 6L2 7"/></svg><span></span></a></p></div></section>
+<p class="note"><a id="privacy" href="privacy-policy.html"></a></p>
+</main>
+<footer>© Qarznoma · <a id="fp" href="privacy-policy.html"></a> · <a id="fd" href="delete-account.html"></a></footer>
+</div>
+<script>
+const LANGS=[["uz", "O'zbekcha"], ["uz-Cyrl", "Ўзбекча"], ["ru", "Русский"], ["en", "English"]];const T={"uz": {"title": "Akkauntni o'chirish", "lead": "Qarznoma akkauntingizni va serverdagi barcha ma'lumotlaringizni o'chirishingiz mumkin. Bu amalni qaytarib bo'lmaydi.", "what_title": "Nima o'chiriladi", "what": ["Akkaunt: login, ism, tarif va uning muddati", "Qarzdorlar va qarzlar tarixi", "Moliya yozuvlari, kategoriyalar, teglar va jamg'arma maqsadlari", "Qaydlar", "Ulangan qurilmalar ro'yxati, to'lovlar tarixi va xabarlarning o'qilganlik holati"], "what_note": "Ma'lumotlar butunlay o'chiriladi, ular saqlab qolinmaydi: 1-usulda darhol, 2- va 3-usulda administrator tasdiqlagach. Telefoningizdagi nusxa ilova o'chirilguncha yoki Sozlamalar → \"Ma'lumotlarni o'chirish\" bosilguncha qoladi.", "sub_note": "Tarifni Google Play orqali sotib olgan bo'lsangiz, obunani Google Play'da alohida bekor qiling — akkaunt o'chirilishi uni avtomatik to'xtatmaydi.", "app_title": "1-usul: ilovaning o'zida", "app_text": "Qarznoma → Sozlamalar → \"Akkauntni o'chirish\" → \"Tushundim\" belgisini qo'ying → \"Akkauntni o'chirish\".", "form_title": "2-usul: shu sahifada so'rov yuborish", "form_text": "Ilova o'rnatilmagan bo'lsa, login va parolingizni kiriting.", "form_safety": "Akkaunt darhol o'chirilmaydi. Parolingizni begona odam bilib olgan bo'lsa ham ma'lumotlaringiz o'chib ketmasligi uchun administrator sizga qo'ng'iroq qilib so'rovni tasdiqlaydi va shundan keyin 30 kun ichida o'chiradi. Siz bilan bog'lanib bo'lmasa, akkaunt o'chirilmaydi.", "login": "Login", "password": "Parol", "phone": "Telefon raqamingiz (administrator qo'ng'iroq qiladi)", "confirm": "Tushundim: tasdiqlangach akkaunt va barcha ma'lumotlar qaytarib bo'lmaydigan tarzda o'chiriladi", "submit": "O'chirish so'rovini yuborish", "working": "Yuborilmoqda…", "ok": "So'rovingiz qabul qilindi. Administrator siz bilan telefon orqali bog'lanadi va tasdiqlagach akkauntni o'chiradi. So'rovni siz yubormagan bo'lsangiz, qo'ng'iroqda rad eting.", "err_creds": "Login yoki parol noto'g'ri.", "err_exists": "Bu akkaunt uchun so'rov allaqachon yuborilgan. Administrator siz bilan bog'lanadi.", "err_limit": "Urinishlar juda ko'p. Birozdan keyin qayta urinib ko'ring.", "err_generic": "So'rovni yuborib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring yoki biz bilan bog'laning.", "err_fill": "Login, parol va telefon raqamini kiriting hamda tasdiq belgisini qo'ying.", "contact_title": "3-usul: parolingiz yo'q bo'lsa", "contact_text": "Google bilan kirgan bo'lsangiz yoki parolni unutgan bo'lsangiz, ilovadan o'chiring yoki bizga yozing. Akkaunt egasi ekaningiz tasdiqlangach, so'rov 30 kun ichida bajariladi:", "privacy_link": "Maxfiylik siyosati", "theme": "Mavzu"}, "uz-Cyrl": {"title": "Аккаунтни ўчириш", "lead": "Qarznoma аккаунтингизни ва сервердаги барча маълумотларингизни ўчиришингиз мумкин. Бу амални қайтариб бўлмайди.", "what_title": "Нима ўчирилади", "what": ["Аккаунт: логин, исм, тариф ва унинг муддати", "Қарздорлар ва қарзлар тарихи", "Молия ёзувлари, категориялар, теглар ва жамғарма мақсадлари", "Қайдлар", "Уланган қурилмалар рўйхати, тўловлар тарихи ва хабарларнинг ўқилганлик ҳолати"], "what_note": "Маълумотлар бутунлай ўчирилади, улар сақлаб қолинмайди: 1-усулда дарҳол, 2- ва 3-усулда администратор тасдиқлагач. Телефонингиздаги нусха илова ўчирилгунча ёки Созламалар → \"Маълумотларни ўчириш\" босилгунча қолади.", "sub_note": "Тарифни Google Play орқали сотиб олган бўлсангиз, обунани Google Play'да алоҳида бекор қилинг — аккаунт ўчирилиши уни автоматик тўхтатмайди.", "app_title": "1-усул: илованинг ўзида", "app_text": "Qarznoma → Созламалар → \"Аккаунтни ўчириш\" → \"Тушундим\" белгисини қўйинг → \"Аккаунтни ўчириш\".", "form_title": "2-усул: шу саҳифада сўров юбориш", "form_text": "Илова ўрнатилмаган бўлса, логин ва паролингизни киритинг.", "form_safety": "Аккаунт дарҳол ўчирилмайди. Паролингизни бегона одам билиб олган бўлса ҳам маълумотларингиз ўчиб кетмаслиги учун администратор сизга қўнғироқ қилиб сўровни тасдиқлайди ва шундан кейин 30 кун ичида ўчиради. Сиз билан боғланиб бўлмаса, аккаунт ўчирилмайди.", "login": "Логин", "password": "Парол", "phone": "Телефон рақамингиз (администратор қўнғироқ қилади)", "confirm": "Тушундим: тасдиқлангач аккаунт ва барча маълумотлар қайтариб бўлмайдиган тарзда ўчирилади", "submit": "Ўчириш сўровини юбориш", "working": "Юборилмоқда…", "ok": "Сўровингиз қабул қилинди. Администратор сиз билан телефон орқали боғланади ва тасдиқлагач аккаунтни ўчиради. Сўровни сиз юбормаган бўлсангиз, қўнғироқда рад этинг.", "err_creds": "Логин ёки парол нотўғри.", "err_exists": "Бу аккаунт учун сўров аллақачон юборилган. Администратор сиз билан боғланади.", "err_limit": "Уринишлар жуда кўп. Бироздан кейин қайта уриниб кўринг.", "err_generic": "Сўровни юбориб бўлмади. Интернетни текшириб, қайта уриниб кўринг ёки биз билан боғланинг.", "err_fill": "Логин, парол ва телефон рақамини киритинг ҳамда тасдиқ белгисини қўйинг.", "contact_title": "3-усул: паролингиз йўқ бўлса", "contact_text": "Google билан кирган бўлсангиз ёки паролни унутган бўлсангиз, иловадан ўчиринг ёки бизга ёзинг. Аккаунт эгаси эканингиз тасдиқлангач, сўров 30 кун ичида бажарилади:", "privacy_link": "Махфийлик сиёсати", "theme": "Мавзу"}, "ru": {"title": "Удаление аккаунта", "lead": "Вы можете удалить аккаунт Qarznoma и все ваши данные на сервере. Это действие необратимо.", "what_title": "Что удаляется", "what": ["Аккаунт: логин, имя, тариф и срок его действия", "Должники и история долгов", "Финансовые записи, категории, теги и цели накоплений", "Заметки", "Список подключённых устройств, история платежей и отметки о прочтении сообщений"], "what_note": "Данные удаляются полностью и не сохраняются: в способе 1 — сразу, в способах 2 и 3 — после подтверждения администратором. Копия на телефоне остаётся, пока приложение не удалено или не нажато Настройки → «Удалить данные».", "sub_note": "Если вы купили тариф через Google Play, отмените подписку в Google Play отдельно — удаление аккаунта не останавливает её автоматически.", "app_title": "Способ 1: в приложении", "app_text": "Qarznoma → Настройки → «Удалить аккаунт» → отметьте «Понимаю» → «Удалить аккаунт».", "form_title": "Способ 2: запрос на этой странице", "form_text": "Если приложение не установлено, введите логин и пароль.", "form_safety": "Аккаунт не удаляется сразу. Чтобы ваши данные не удалил посторонний, узнавший пароль, администратор позвонит вам, подтвердит запрос и после этого удалит аккаунт в течение 30 дней. Если связаться с вами не удастся, аккаунт не будет удалён.", "login": "Логин", "password": "Пароль", "phone": "Ваш номер телефона (администратор позвонит)", "confirm": "Понимаю: после подтверждения аккаунт и все данные будут удалены безвозвратно", "submit": "Отправить запрос на удаление", "working": "Отправка…", "ok": "Запрос принят. Администратор свяжется с вами по телефону и после подтверждения удалит аккаунт. Если запрос отправили не вы, откажитесь во время звонка.", "err_creds": "Неверный логин или пароль.", "err_exists": "Запрос для этого аккаунта уже отправлен. Администратор свяжется с вами.", "err_limit": "Слишком много попыток. Попробуйте немного позже.", "err_generic": "Не удалось отправить запрос. Проверьте интернет и попробуйте снова или свяжитесь с нами.", "err_fill": "Введите логин, пароль и номер телефона и поставьте отметку подтверждения.", "contact_title": "Способ 3: если у вас нет пароля", "contact_text": "Если вы входили через Google или забыли пароль, удалите аккаунт в приложении или напишите нам. После подтверждения, что аккаунт ваш, запрос будет выполнен в течение 30 дней:", "privacy_link": "Политика конфиденциальности", "theme": "Тема"}, "en": {"title": "Delete account", "lead": "You can delete your Qarznoma account and all your data on the server. This cannot be undone.", "what_title": "What is deleted", "what": ["Account: login, name, plan and its expiry", "Debtors and debt history", "Finance records, categories, tags and savings goals", "Notes", "Connected devices, payment history and message read status"], "what_note": "Data is deleted completely and nothing is retained: immediately with option 1, after administrator confirmation with options 2 and 3. The copy on your phone stays until you uninstall the app or tap Settings → \"Delete data\".", "sub_note": "If you bought a plan through Google Play, cancel the subscription in Google Play separately — deleting the account does not stop it automatically.", "app_title": "Option 1: in the app", "app_text": "Qarznoma → Settings → \"Delete account\" → tick \"I understand\" → \"Delete account\".", "form_title": "Option 2: send a request on this page", "form_text": "If the app is not installed, enter your login and password.", "form_safety": "The account is not deleted immediately. So that someone who learned your password cannot erase your data, an administrator will call you to confirm the request and will then delete the account within 30 days. If we cannot reach you, the account is not deleted.", "login": "Login", "password": "Password", "phone": "Your phone number (the administrator will call)", "confirm": "I understand: once confirmed, the account and all data will be deleted permanently", "submit": "Send deletion request", "working": "Sending…", "ok": "Your request has been received. An administrator will call you and delete the account after confirming. If you did not send this request, decline it on the call.", "err_creds": "Wrong login or password.", "err_exists": "A request for this account has already been sent. An administrator will contact you.", "err_limit": "Too many attempts. Please try again a bit later.", "err_generic": "Could not send the request. Check your internet connection and try again, or contact us.", "err_fill": "Enter your login, password and phone number and tick the confirmation box.", "contact_title": "Option 3: if you have no password", "contact_text": "If you signed in with Google or forgot your password, delete the account in the app or write to us. Once we confirm the account is yours, the request will be completed within 30 days:", "privacy_link": "Privacy policy", "theme": "Theme"}};
+const THEME_L={'uz':["Tungi rejim","Kunduzgi rejim"],'uz-Cyrl':["Тунги режим","Кундузги режим"],
+'ru':["Тёмная тема","Светлая тема"],'en':["Dark mode","Light mode"]};
+const FOOT={'uz':["Maxfiylik siyosati","Akkauntni o'chirish"],'uz-Cyrl':["Махфийлик сиёсати","Аккаунтни ўчириш"],
+'ru':["Политика конфиденциальности","Удаление аккаунта"],'en':["Privacy policy","Delete account"]};
+const MOON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+const SUN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+function pickLang(){try{const q=new URLSearchParams(location.search).get('lang');if(q&&T[q])return q}catch(e){}
+try{const s=localStorage.getItem('qz_lang');if(s&&T[s])return s}catch(e){}
+const n=(navigator.language||'uz').toLowerCase();if(n.startsWith('ru'))return'ru';if(n.startsWith('en'))return'en';
+if(n.startsWith('uz-cyrl'))return'uz-Cyrl';return'uz'}
+let lang=pickLang();
+function curTheme(){return document.documentElement.getAttribute('data-theme')||
+(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}
+function setTheme(t){const r=document.documentElement;if(t)r.setAttribute('data-theme',t);else r.removeAttribute('data-theme');
+try{t?localStorage.setItem('qz_theme',t):localStorage.removeItem('qz_theme')}catch(e){}themeBtn()}
+try{const t=localStorage.getItem('qz_theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}
+function toggleTheme(){setTheme(curTheme()==='dark'?'light':'dark')}
+/* Tugma bosilganda NIMA bo'lishini ko'rsatadi: yorug'da "🌙 Tungi rejim", qorong'ida "☀ Kunduzgi rejim" */
+function themeBtn(){const b=document.getElementById('themeBtn');if(!b)return;const dark=curTheme()==='dark';
+const lbl=THEME_L[lang][dark?1:0];b.innerHTML=(dark?SUN:MOON)+'<span class="lbl">'+lbl+'</span>';
+b.setAttribute('aria-label',lbl);b.title=lbl}
+try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',themeBtn)}catch(e){}
+/* Til menyusi — brauzerning oddiy <select> ro'yxati bezatib bo'lmaydi, shuning uchun o'zimizniki */
+const CODES={'uz':'UZ','uz-Cyrl':'ЎЗ','ru':'RU','en':'EN'};
+const CHECK='<svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+function menuOpen(open){const b=document.getElementById('langBtn'),m=document.getElementById('langMenu');
+m.hidden=!open;b.setAttribute('aria-expanded',open);
+if(open){const cur=m.querySelector('[aria-selected="true"]')||m.firstChild;cur.focus()}}
+function pickFromMenu(code){lang=code;try{localStorage.setItem('qz_lang',code)}catch(e){}
+try{const u=new URL(location.href);u.searchParams.set('lang',code);history.replaceState(null,'',u)}catch(e){}
+menuOpen(false);document.getElementById('langBtn').focus();render()}
+function initLangMenu(){const b=document.getElementById('langBtn'),m=document.getElementById('langMenu');
+m.innerHTML=LANGS.map(([c,n])=>'<li role="option" tabindex="-1" data-code="'+c+'"><span class="code">'+CODES[c]+
+'</span><span class="nm">'+n+'</span>'+CHECK+'</li>').join('');
+b.onclick=e=>{e.stopPropagation();menuOpen(m.hidden)};
+m.onclick=e=>{const li=e.target.closest('li');if(li)pickFromMenu(li.dataset.code)};
+document.addEventListener('click',e=>{if(!m.hidden&&!m.contains(e.target))menuOpen(false)});
+m.onkeydown=e=>{const items=[...m.children],i=items.indexOf(document.activeElement);
+if(e.key==='ArrowDown'){e.preventDefault();items[(i+1)%items.length].focus()}
+else if(e.key==='ArrowUp'){e.preventDefault();items[(i-1+items.length)%items.length].focus()}
+else if(e.key==='Enter'||e.key===' '){e.preventDefault();if(i>=0)pickFromMenu(items[i].dataset.code)}
+else if(e.key==='Escape'||e.key==='Tab'){menuOpen(false);b.focus()}}}
+function langButtons(){const m=document.getElementById('langMenu');if(!m.children.length)initLangMenu();
+[...m.children].forEach(li=>li.setAttribute('aria-selected',li.dataset.code===lang));
+document.getElementById('langCur').textContent=LANGS.find(([c])=>c===lang)[1];themeBtn();const f=FOOT[lang];document.getElementById('fp').textContent=f[0];
+document.getElementById('fd').textContent=f[1];
+document.getElementById('fp').href='privacy-policy.html?lang='+lang;document.getElementById('fd').href='delete-account.html?lang='+lang}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function para(s){return esc(s).split(/\n\n+/).map(p=>'<p>'+p.replace(/\n/g,'<br>')+'</p>').join('')}
+
+/* ═══ BACKEND DASTURCHI SOZLAYDI ═══
+   API_BASE — Go backend manzili (shu sahifa bilan bir domenda bo'lsa '' qoldiring, aks holda CORS'ga ruxsat bering).
+   Forma akkauntni O'CHIRMAYDI, faqat so'rov yaratadi (admin telefon orqali tasdiqlagach o'chiradi):
+   POST /v1/account-deletion-requests {login,password,phone,lang} -> 202. 401 parol xato, 409 so'rov bor, 429 limit.
+   SUPPORT — parolsiz (Google) foydalanuvchilar uchun aloqa: email yoki Telegram havolasi. */
+const CONFIG={API_BASE:'',SUPPORT_HREF:'mailto:coderxqwerty@gmail.com',SUPPORT_LABEL:'coderxqwerty@gmail.com'};
+let state='';
+function render(){const t=T[lang];document.documentElement.lang=lang;document.title='Qarznoma — '+t.title;langButtons();
+document.querySelectorAll('[data-t]').forEach(el=>{el.textContent=t[el.dataset.t]});
+document.getElementById('what').innerHTML=t.what.map(x=>'<li>'+esc(x)+'</li>').join('');
+const c=document.getElementById('contact');c.href=CONFIG.SUPPORT_HREF;c.querySelector('span').textContent=CONFIG.SUPPORT_LABEL;
+const p=document.getElementById('privacy');p.href='privacy-policy.html?lang='+lang;p.textContent=t.privacy_link+' →';
+showMsg(state)}
+function showMsg(k){state=k;const m=document.getElementById('msg');const t=T[lang];m.textContent=k?t[k]:'';
+m.className='msg '+(k==='ok'?'ok':'err')}
+document.getElementById('f').addEventListener('submit',async e=>{e.preventDefault();const t=T[lang];
+const login=document.getElementById('login').value.trim(),pw=document.getElementById('password').value,
+phone=document.getElementById('phone').value.trim();
+if(!login||!pw||phone.replace(/\D/g,'').length<7||!document.getElementById('agree').checked){showMsg('err_fill');return}
+const btn=document.getElementById('go');btn.disabled=true;btn.textContent=t.working;showMsg('');
+try{const r=await fetch(CONFIG.API_BASE+'/v1/account-deletion-requests',{method:'POST',
+headers:{'Content-Type':'application/json'},body:JSON.stringify({login,password:pw,phone,lang})});
+if(r.ok){showMsg('ok');document.getElementById('f').reset()}
+else if(r.status===401)showMsg('err_creds');else if(r.status===409)showMsg('err_exists');
+else if(r.status===429)showMsg('err_limit');else showMsg('err_generic')}
+catch(err){showMsg('err_generic')}
+finally{btn.disabled=false;btn.textContent=T[lang].submit}});
+render();</script>
+</body>
+</html>
