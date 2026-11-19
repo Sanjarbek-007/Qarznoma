@@ -17,10 +17,28 @@ services:
     env_file: .env
     environment:
       DATABASE_URL: postgres://qarznoma:${POSTGRES_PASSWORD}@db:5432/qarznoma?sslmode=disable
+      TRUST_PROXY: "1"   # requests come through Caddy
     depends_on:
       db: { condition: service_healthy }
-    ports: ["127.0.0.1:8080:8080"]   # put Caddy/Nginx (HTTPS) in front
+    ports: ["127.0.0.1:8080:8080"]   # local access only (debugging); the public goes through Caddy
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.8-alpine
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env (e.g. api.example.uz)}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"   # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data       # certificates: keep this volume, or Let's Encrypt may rate-limit you
+      - caddy_config:/config
+    depends_on: [api]
     restart: unless-stopped
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

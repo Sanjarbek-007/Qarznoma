@@ -8,20 +8,47 @@ Stack: Go 1.26, Gin, pgx/v5 (hand-written SQL), goose (embedded migrations, appl
 ## Run locally
 
 ```bash
-cp .env.example .env   # fill in secrets
+cp .env.example .env   # fill in secrets, set DOMAIN=localhost
 docker compose up --build
-curl localhost:8080/healthz
+curl -k https://localhost/healthz
 ```
 
 Without Docker: `DATABASE_URL=postgres://... JWT_SECRET=<32+ bytes> go run ./cmd/server`.
 
+## Deploy to a server
+
+The stack is `db` (Postgres) + `api` + `caddy`. Caddy is the only public part: it listens on
+80/443, gets and renews the Let's Encrypt certificate for `DOMAIN`, redirects http → https and
+proxies to the API. Postgres and the API are not reachable from the internet.
+
+1. **DNS:** at your domain registrar (or Cloudflare), add an `A` record: name `api` (or whatever
+   subdomain you want), value = the server's public IPv4. Add an `AAAA` record too only if the
+   server has IPv6. If you use Cloudflare, set the record to "DNS only" (grey cloud) at least until the
+   first certificate is issued. Check with `dig +short api.example.uz` that it returns the server IP.
+2. **Firewall:** open ports 80 and 443 (TCP, and 443/UDP for HTTP/3). Port 80 is needed for the
+   certificate challenge.
+3. **Server:** install Docker, copy the repo, then:
+   ```bash
+   cp .env.example .env   # DOMAIN=api.example.uz, real secrets (openssl rand -hex 32)
+   docker compose up -d --build
+   docker compose logs -f caddy   # wait for "certificate obtained successfully"
+   curl https://api.example.uz/healthz
+   ```
+4. Point the Android app's base URL at `https://api.example.uz`. The privacy policy and
+   delete-account pages are at `https://api.example.uz/privacy` and `/delete-account` (use these
+   links in Google Play Console).
+
+Updating: `git pull && docker compose up -d --build`. Don't delete the `caddy_data` volume, because
+re-issuing certificates too often hits Let's Encrypt rate limits.
+
 | Env | Meaning |
 |---|---|
+| `DOMAIN` | public domain for Caddy (HTTPS); `localhost` for local testing |
 | `DATABASE_URL` | Postgres URL (required) |
 | `JWT_SECRET` | ≥ 32 bytes (required) |
 | `ADMIN_LOGIN` / `ADMIN_PASSWORD` | bootstrap admin, created on start if the login doesn't exist; never modified afterwards |
 | `GOOGLE_WEB_CLIENT_ID` | `aud` for Google ID tokens; empty → `/v1/auth/google` returns 501 |
-| `TRUST_PROXY=1` | use `X-Forwarded-For` (behind Caddy/Nginx) for rate limits |
+| `TRUST_PROXY=1` | use `X-Forwarded-For` for rate limits (set automatically in docker-compose, behind Caddy) |
 | `WEB_DIR` | serves `web/` at `/privacy` and `/delete-account` (set in the Docker image) |
 | `WEB_ORIGIN` | CORS origin if the delete-account page lives on another domain |
 | `ACCESS_TTL` / `REFRESH_TTL` | default 15m / 60 days |
