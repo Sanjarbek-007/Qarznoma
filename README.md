@@ -53,9 +53,44 @@ Updating: with CI/CD set up (below), merging to `main` deploys automatically. By
 `git pull && docker compose up -d --build`. Don't delete the `caddy_data` volume, because
 re-issuing certificates too often hits Let's Encrypt rate limits.
 
+### If the server already runs nginx
+
+Caddy needs ports 80/443. When nginx already serves other sites there, leave Caddy off and let
+nginx proxy the API domain instead:
+
+1. In the server's `.env`, remove the `COMPOSE_PROFILES=caddy` line (keep `DOMAIN`). Only `db` and
+   `api` start, and the API listens on `127.0.0.1:8080`.
+2. Add `/etc/nginx/sites-available/api.example.uz` and enable it
+   (`ln -s ../sites-available/api.example.uz /etc/nginx/sites-enabled/`):
+   ```nginx
+   server {
+       listen 80;
+       listen [::]:80;
+       server_name api.example.uz;
+
+       client_max_body_size 20m;   # sync pushes can be up to 16 MB
+
+       location / {
+           proxy_pass http://127.0.0.1:8080;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+           proxy_read_timeout 60s;
+       }
+   }
+   ```
+3. `nginx -t && systemctl reload nginx`, then get the certificate with
+   `certbot --nginx -d api.example.uz --redirect`. Certbot adds the HTTPS server block and renews
+   the certificate automatically.
+
+The API trusts `X-Forwarded-For` only from private addresses (the Docker bridge), which is where
+nginx's requests arrive from, so rate limits see the real client IP.
+
 | Env | Meaning |
 |---|---|
 | `DOMAIN` | public domain for Caddy (HTTPS); `localhost` for local testing |
+| `COMPOSE_PROFILES=caddy` | start the bundled Caddy on 80/443; leave it out when nginx (or another proxy) already owns those ports |
 | `DATABASE_URL` | Postgres URL (required) |
 | `JWT_SECRET` | ≥ 32 bytes (required) |
 | `ADMIN_LOGIN` / `ADMIN_PASSWORD` | bootstrap admin, created on start if the login doesn't exist; never modified afterwards |
