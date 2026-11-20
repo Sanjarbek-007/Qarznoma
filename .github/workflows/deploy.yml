@@ -57,6 +57,8 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          # One tag for both: the server pulls the matching one (the Oracle server is ARM).
+          platforms: linux/amd64,linux/arm64
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
