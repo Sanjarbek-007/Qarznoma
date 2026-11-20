@@ -112,8 +112,13 @@ jobs:
       - name: Set up SSH
         run: |
           install -d -m 700 ~/.ssh
-          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
+          # Fail early on a key ssh can't load, and print its fingerprint (public, safe to show) so it
+          # can be compared with the server's log ("Accepted publickey for deploy ... SHA256:...").
+          pub=$(ssh-keygen -y -f ~/.ssh/deploy_key) || {
+            echo "::error::SSH_PRIVATE_KEY is not a usable private key. Paste the whole private key file (not the .pub), from -----BEGIN to -----END."; exit 1; }
+          echo "Deploy key fingerprint: $(printf '%s\n' "$pub" | ssh-keygen -lf - | cut -d' ' -f2)"
           # Pinned host key: the connection fails if the server's key doesn't match (no MITM).
           printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
           cat > ~/.ssh/config <<EOF
@@ -134,6 +139,10 @@ jobs:
 
       - name: Upload compose files
         run: |
+          # Connect first on its own, with ssh's own messages shown, so a login or network problem
+          # isn't reported as a missing .env.
+          ssh -o ConnectTimeout=20 server true || {
+            echo "::error::SSH to the server (port $SSH_PORT) failed (see the ssh output above). Check the SSH_* secrets, that the deploy key is in ~deploy/.ssh/authorized_keys, and that port $SSH_PORT is open to GitHub's runners."; exit 1; }
           # shellcheck disable=SC2029  # expanding on the runner is intended
           ssh server "test -f '$DEPLOY_PATH/.env'" || {
             echo "::error::$DEPLOY_PATH/.env is missing on the server. Create it once from .env.example (see README)."; exit 1; }
