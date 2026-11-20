@@ -70,6 +70,8 @@ jobs:
       - uses: docker/build-push-action@v6
         with:
           context: .
+          # Same platforms as the release image, so a PR can't break the ARM build.
+          platforms: linux/amd64,linux/arm64
           push: false
           cache-from: type=gha
           cache-to: type=gha,mode=max
