@@ -23,7 +23,8 @@ type Config struct {
 	// Google Sign-In: Web client ID used in the Android app (aud of the ID token).
 	GoogleWebClientID string // GOOGLE_WEB_CLIENT_ID; empty => /v1/auth/google disabled
 
-	// Allowed origin for the web delete-account page if hosted on another domain (CORS).
+	// Browser origins allowed to call the API (CORS), comma-separated, e.g.
+	// "https://app.example.uz,http://localhost:5173". Not needed for pages served by this server.
 	WebOrigin string // WEB_ORIGIN
 
 	// Directory with docs/web pages served at /privacy and /delete-account (optional).

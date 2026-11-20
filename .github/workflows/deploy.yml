@@ -1,0 +1,148 @@
+name: Deploy
+
+# On every push to main: run CI, build the image, push it to GHCR, and (once the server is set up)
+# deploy it over SSH. Run it by hand with a tag to roll back to an older image.
+#
+# Server setup and the secrets/variables used here: see "CI/CD" in README.md.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Image tag to deploy (a commit SHA). Empty = build and deploy the current commit."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+# Never run two deploys at once; a newer push waits for the running one instead of cancelling it.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  ci:
+    if: inputs.tag == ''
+    uses: ./.github/workflows/ci.yml
+
+  image:
+    name: Build and push image
+    needs: ci
+    if: inputs.tag == ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: meta
+        name: Image name
+        run: |
+          echo "image=${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/qarznoma-api" >> "$GITHUB_OUTPUT"
+          echo "tag=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:${{ steps.meta.outputs.tag }}
+            ${{ steps.meta.outputs.image }}:latest
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to server
+    needs: image
+    # Runs after a successful build, or alone when a tag is given by hand.
+    # Stays off until the repository variable DEPLOY_ENABLED is set to "true".
+    if: |
+      always() && vars.DEPLOY_ENABLED == 'true' &&
+      (needs.image.result == 'success' || (inputs.tag != '' && needs.image.result == 'skipped'))
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PUBLIC_URL }}
+    permissions:
+      contents: read
+      packages: read
+    env:
+      TAG: ${{ inputs.tag != '' && inputs.tag || needs.image.outputs.tag }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/qarznoma' }}
+      SSH_PORT: ${{ vars.SSH_PORT || '22' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            docker-compose.yml
+            Caddyfile
+            scripts/deploy.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Check inputs
+        run: |
+          [[ "$TAG" =~ ^[0-9a-f]{7,40}$ ]] || { echo "::error::tag must be a commit SHA, got '$TAG'"; exit 1; }
+          for s in SSH_HOST SSH_USER SSH_PRIVATE_KEY SSH_KNOWN_HOSTS; do
+            [ -n "${!s}" ] || { echo "::error::Secret $s is not set (see README, CI/CD)"; exit 1; }
+          done
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: Set up SSH
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          # Pinned host key: the connection fails if the server's key doesn't match (no MITM).
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host server
+            HostName $SSH_HOST
+            User $SSH_USER
+            Port $SSH_PORT
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 15
+          EOF
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+
+      - name: Upload compose files
+        run: |
+          # shellcheck disable=SC2029  # expanding on the runner is intended
+          ssh server "test -f '$DEPLOY_PATH/.env'" || {
+            echo "::error::$DEPLOY_PATH/.env is missing on the server. Create it once from .env.example (see README)."; exit 1; }
+          scp -q docker-compose.yml Caddyfile scripts/deploy.sh "server:$DEPLOY_PATH/"
+
+      - name: Deploy and health check
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/qarznoma-api"
+          # The job token (read-only for packages, valid only while this job runs) goes over stdin,
+          # never on a command line; deploy.sh logs out of the registry when it finishes.
+          # shellcheck disable=SC2029  # TAG is checked above; DEPLOY_PATH is a repo variable
+          printf '%s\n' "$TOKEN" | ssh server "bash '$DEPLOY_PATH/deploy.sh' '$DEPLOY_PATH' '$image' '$TAG' '$GITHUB_ACTOR'"
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -68,18 +68,31 @@ func recovery() gin.HandlerFunc {
 }
 
 // cors allows only the configured web origin (delete-account page on another domain).
+// cors allows browser apps on the origins listed in WEB_ORIGIN (comma-separated).
+// It runs globally (not on the /v1 group) so preflight OPTIONS requests, which match no route,
+// still get the CORS headers.
 func (s *Server) cors() gin.HandlerFunc {
+	allowed := map[string]bool{}
+	for _, o := range strings.Split(s.cfg.WebOrigin, ",") {
+		if o = strings.TrimRight(strings.TrimSpace(o), "/"); o != "" {
+			allowed[o] = true
+		}
+	}
 	return func(c *gin.Context) {
 		origin := c.GetHeader("Origin")
-		if s.cfg.WebOrigin != "" && origin == s.cfg.WebOrigin {
-			c.Header("Access-Control-Allow-Origin", origin)
-			c.Header("Vary", "Origin")
-			c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			c.Header("Access-Control-Allow-Headers", "Content-Type")
-			if c.Request.Method == http.MethodOptions {
-				c.AbortWithStatus(http.StatusNoContent)
-				return
-			}
+		if origin == "" || !allowed[origin] {
+			c.Next()
+			return
+		}
+		c.Header("Access-Control-Allow-Origin", origin)
+		c.Header("Vary", "Origin")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+		c.Header("Access-Control-Expose-Headers", "X-Request-ID")
+		c.Header("Access-Control-Max-Age", "600")
+		if c.Request.Method == http.MethodOptions {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
 		}
 		c.Next()
 	}

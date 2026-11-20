@@ -13,6 +13,9 @@ services:
     restart: unless-stopped
 
   api:
+    # Locally: built from source (docker compose up --build).
+    # On the server: the image CI pushed to GHCR; deploy.sh sets API_IMAGE in .env.
+    image: ${API_IMAGE:-qarznoma-api:local}
     build: .
     env_file: .env
     environment:
