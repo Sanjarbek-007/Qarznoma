@@ -49,7 +49,8 @@ proxies to the API. Postgres and the API are not reachable from the internet.
    delete-account pages are at `https://api.example.uz/privacy` and `/delete-account` (use these
    links in Google Play Console).
 
-Updating: `git pull && docker compose up -d --build`. Don't delete the `caddy_data` volume, because
+Updating: with CI/CD set up (below), merging to `main` deploys automatically. By hand:
+`git pull && docker compose up -d --build`. Don't delete the `caddy_data` volume, because
 re-issuing certificates too often hits Let's Encrypt rate limits.
 
 | Env | Meaning |
@@ -61,9 +62,80 @@ re-issuing certificates too often hits Let's Encrypt rate limits.
 | `GOOGLE_WEB_CLIENT_ID` | `aud` for Google ID tokens; empty → `/v1/auth/google` returns 501 |
 | `TRUST_PROXY=1` | use `X-Forwarded-For` for rate limits (set automatically in docker-compose, behind Caddy) |
 | `WEB_DIR` | serves `web/` at `/privacy` and `/delete-account` (set in the Docker image) |
-| `WEB_ORIGIN` | CORS origin if the delete-account page lives on another domain |
+| `WEB_ORIGIN` | browser origins allowed to call the API (CORS), comma-separated, e.g. `https://app.example.uz,http://localhost:5173` |
+| `API_IMAGE` | image for the `api` service; set by the deploy script on the server, leave unset locally |
 | `ACCESS_TTL` / `REFRESH_TTL` | default 15m / 60 days |
 | `DISABLE_DOCS=1` | turn off Swagger UI at `/docs` |
+
+## CI/CD (GitHub Actions)
+
+**CI** ([.github/workflows/ci.yml](.github/workflows/ci.yml)) runs on every pull request:
+gofmt, `go mod tidy` check, `go vet`, `govulncheck` (known vulnerabilities in dependencies and the Go
+standard library), the full test suite with `-race` against Postgres, and a Docker build.
+
+**CD** ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)) runs on every push to `main`:
+
+1. runs CI again;
+2. builds the image and pushes it to GHCR as `ghcr.io/<owner>/qarznoma-api:<commit sha>` (and `:latest`);
+3. if deploying is enabled: copies `docker-compose.yml`, `Caddyfile` and
+   [scripts/deploy.sh](scripts/deploy.sh) to the server over SSH and runs the script, which pulls
+   the image, restarts the API and waits for `/healthz`. If the new version isn't healthy within
+   about 60 s, or the deploy is interrupted, it switches back to the previous version and the run fails.
+
+Until deploying is enabled, merges to `main` only run CI and push the image.
+
+### One-time setup
+
+**On the server** (after the steps in "Deploy to a server" above, minus `docker compose up`):
+
+```bash
+sudo adduser --disabled-password --gecos "" deploy && sudo usermod -aG docker deploy
+sudo mkdir -p /opt/qarznoma && sudo chown deploy: /opt/qarznoma
+sudo -u deploy cp .env.example /opt/qarznoma/.env   # then edit it: DOMAIN and real secrets
+```
+
+**A deploy key** (on your laptop; this key only lets GitHub log in as `deploy`):
+
+```bash
+ssh-keygen -t ed25519 -N "" -C github-deploy -f qarznoma_deploy
+```
+
+Append `qarznoma_deploy.pub` to `/home/deploy/.ssh/authorized_keys` on the server. Then get the
+server's host key, and check its fingerprint against the server (`ssh-keygen -lf` on
+`/etc/ssh/ssh_host_ed25519_key.pub`):
+
+```bash
+ssh-keyscan -t ed25519 <server-ip>
+```
+
+**On GitHub**, Settings → Environments → New environment `production` (optionally add yourself as
+a required reviewer, so every deploy waits for your click). In that environment add:
+
+| Secret | Value |
+|---|---|
+| `SSH_HOST` | server IP or hostname |
+| `SSH_USER` | `deploy` |
+| `SSH_PRIVATE_KEY` | contents of `qarznoma_deploy` (the private key; delete it from your laptop afterwards) |
+| `SSH_KNOWN_HOSTS` | the `ssh-keyscan` output line |
+
+Then Settings → Secrets and variables → Actions → Variables:
+
+| Variable | Value |
+|---|---|
+| `DEPLOY_ENABLED` | `true` (turns deploying on) |
+| `DEPLOY_PATH` | optional, default `/opt/qarznoma` |
+| `SSH_PORT` | optional, default `22` |
+| `PUBLIC_URL` | optional, e.g. `https://api.example.uz` (shown as a link on the deploy run) |
+
+The image is private on GHCR; the workflow's own token pulls it during the deploy, so the server
+needs no GitHub credentials. Also recommended: Settings → Branches → protect `main` and require the
+CI checks (Lint, Test, Docker build) to pass before merging.
+
+### Rolling back
+
+Actions → Deploy → Run workflow → enter an older commit SHA as `tag`. It deploys that image without
+rebuilding. Migrations only run forward, so roll back only to a version made for the same database
+schema (any version after the last migration was added).
 
 ## Tests
 
@@ -91,6 +163,8 @@ migrations/        goose SQL (final schema = HANDOFF §4 + sync_clock + purchase
 internal/api       handlers: auth, profile/devices/announcements, sync, admin, deletion, billing
 internal/auth      bcrypt, JWT, refresh tokens
 docs/              openapi.yaml (embedded, served at /docs)
+scripts/deploy.sh  runs on the server during CD: pull, restart, health check, rollback
+.github/workflows  ci.yml (checks on every PR), deploy.yml (build, push to GHCR, deploy on main)
 web/               privacy-policy.html, delete-account.html (from docs/web)
 ```
 
